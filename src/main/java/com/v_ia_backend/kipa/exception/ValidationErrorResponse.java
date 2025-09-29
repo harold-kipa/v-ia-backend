@@ -1,6 +1,6 @@
-package com.avaluarApp.rti.exception;
+package com.v_ia_backend.kipa.exception;
 
-import com.avaluarApp.rti.exception.listexceptions.Violation;
+import com.v_ia_backend.kipa.exception.listexceptions.Violation;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,4 +1,4 @@
-package com.avaluarApp.rti.exception;
+package com.v_ia_backend.kipa.exception;
 
 import lombok.Getter;
 import lombok.ToString;

@@ -1,6 +1,6 @@
-package com.avaluarApp.rti.exception;
+package com.v_ia_backend.kipa.exception;
 
-import com.avaluarApp.rti.exception.listexceptions.*;
+import com.v_ia_backend.kipa.exception.listexceptions.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;

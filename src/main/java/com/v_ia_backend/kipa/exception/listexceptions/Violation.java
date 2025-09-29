@@ -1,4 +1,4 @@
-package com.avaluarApp.rti.exception.listexceptions;
+package com.v_ia_backend.kipa.exception.listexceptions;
 
 public class Violation {
 
