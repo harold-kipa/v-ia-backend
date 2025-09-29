@@ -13,7 +13,7 @@ public class AuthController {
     public String login() {
         return "Login successful";
     }
-    @PostMapping("/login")
+    @PostMapping("/register")
     public String register() {
         return "register successful";
     }
