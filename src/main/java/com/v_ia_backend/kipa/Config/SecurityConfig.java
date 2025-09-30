@@ -1,4 +1,4 @@
-package com.v_ia_backend.kipa.Config;
+package com.v_ia_backend.kipa.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,7 +27,7 @@ public class SecurityConfig {
             .formLogin(withDefaults())
             .build();
     }
-    
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
