@@ -13,6 +13,8 @@ import com.v_ia_backend.kipa.dto.request.UsersRequest;
 import com.v_ia_backend.kipa.entity.Users;
 import com.v_ia_backend.kipa.exception.listexceptions.ConflictException;
 import com.v_ia_backend.kipa.repository.UsersRepository;
+import com.v_ia_backend.kipa.service.interfaces.RoleService;
+import com.v_ia_backend.kipa.service.interfaces.StatusUserService;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -24,14 +26,20 @@ import java.util.Optional;
 public class UserServiceImpl implements UserDetailsService {
     @Value("${status.deleted}")
     private Long delete;
+    @Value("${status.active}")
+    private Long active;
 
     private final MessageSource messageSource;
     private final PasswordEncoder bcryptEncoder;
     private final UsersRepository userRepository;
-    public UserServiceImpl(MessageSource messageSource, PasswordEncoder bcryptEncoder, UsersRepository userRepository) {
+    private final StatusUserService statusUserService;
+    private final RoleService roleService;
+    public UserServiceImpl(MessageSource messageSource, PasswordEncoder bcryptEncoder, UsersRepository userRepository, StatusUserService statusUserService, RoleService roleService) {
         this.messageSource = messageSource;
         this.bcryptEncoder = bcryptEncoder;
         this.userRepository = userRepository;
+        this.statusUserService = statusUserService;
+        this.roleService = roleService;
     }
     
     @Override
@@ -60,7 +68,7 @@ public class UserServiceImpl implements UserDetailsService {
 
         Optional<Users> userByIdentification = Optional.empty();
         if (shouldCheckIdentification) {
-            userByIdentification = Optional.ofNullable(userRepository.findByIdentification(request.getIdentification()));
+            userByIdentification = Optional.ofNullable(userRepository.findByIdentificationNumber(request.getIdentification()));
 
             if (userByIdentification.isPresent() && !Objects.equals(userByIdentification.get().getStatus().getId(), delete)) {
                 throw new ConflictException(messageSource.getMessage("identification.exist", null, "", LocaleContextHolder.getLocale()));
@@ -86,8 +94,8 @@ private void createUserDetails(Users user, UsersRequest request) {
         user.setIdentificationNumber(request.getIdentification());
         user.setEmail(request.getEmail());
         user.setPassword(bcryptEncoder.encode(request.getPassword()));
-        user.setStatus(statusUserService.getStatusByid(changePasswords));
-        user.setRoleId(roleService.getRoleById(request.getRoleId().getId()));
+        user.setStatus(statusUserService.getStatusById(active));
+        user.setRoles(roleService.getRoleById(request.getRoleId().getId()));
         // user.setPushToken(request.getPushToken());
   }
 }

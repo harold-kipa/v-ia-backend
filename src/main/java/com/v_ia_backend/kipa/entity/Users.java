@@ -2,12 +2,12 @@ package com.v_ia_backend.kipa.entity;
 
 import jakarta.persistence.*;
 
+import java.sql.Timestamp;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import lombok.Getter;
 import lombok.Setter;
-
-import java.security.Timestamp;
 
 @Entity
 @Getter

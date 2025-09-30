@@ -12,13 +12,19 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.v_ia_backend.kipa.dto.request.UsersRequest;
+import com.v_ia_backend.kipa.entity.Users;
+import com.v_ia_backend.kipa.service.UserServiceImpl;
 
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/userscontroller")
-@RequiredArgsConstructor
+@RequestMapping("/user")
 public class UsersController {
+
+    private final UserServiceImpl userService;
+    public UsersController(UserServiceImpl userService) {
+        this.userService = userService;
+    }
 
     @GetMapping()
     public ResponseEntity<?> findAll() {
@@ -40,14 +46,10 @@ public class UsersController {
         }
     }
 
-    @PostMapping()
-    public ResponseEntity<?> create(@RequestBody UsersRequest dto) {
-        try {
-            //TODO Implement Your Logic To Save Data And Return Result Through ResponseEntity
-            return new ResponseEntity<>("Create Result", HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    @PostMapping("/create")
+    public ResponseEntity<Object> createUserController(@RequestBody UsersRequest request) {
+        Users user = userService.createUser(request);
+        return ResponseEntity.ok(user);
     }
 
     @PutMapping()
