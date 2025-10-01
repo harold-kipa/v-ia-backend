@@ -87,15 +87,22 @@ public class UserServiceImpl implements UserDetailsService {
             return userRepository.save(newUser);
         }
     }
-private void createUserDetails(Users user, UsersRequest request) {
-        user.setName(request.getName());
-        user.setLastName(request.getLastName());
+    private void createUserDetails(Users user, UsersRequest request) {
+            user.setName(request.getName());
+            user.setLastName(request.getLastName());
 
-        user.setIdentificationNumber(request.getIdentification());
-        user.setEmail(request.getEmail());
-        user.setPassword(bcryptEncoder.encode(request.getPassword()));
-        user.setStatus(statusUserService.getStatusById(active));
-        user.setRoles(roleService.getRoleById(request.getRoleId().getId()));
-        // user.setPushToken(request.getPushToken());
-  }
+            user.setIdentificationNumber(request.getIdentification());
+            user.setEmail(request.getEmail());
+            user.setPassword(bcryptEncoder.encode(request.getPassword()));
+            user.setStatus(statusUserService.getStatusById(active));
+            user.setRoles(roleService.getRoleById(request.getRoleId().getId()));
+            // user.setPushToken(request.getPushToken());
+    }
+    public Users getUserByEmail(String email) {
+        Users user = userRepository.findByEmail(email);
+        if (user == null || Objects.equals(user.getStatus().getId(), delete)) {
+            throw new UsernameNotFoundException(messageSource.getMessage("user.notfound", null, "", LocaleContextHolder.getLocale()));
+        }
+        return user;
+    }
 }

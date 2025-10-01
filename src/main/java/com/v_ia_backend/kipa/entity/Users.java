@@ -31,7 +31,7 @@ public class Users {
     private String password;
 
     @ManyToOne
-    @JoinColumn(name = "status")
+    @JoinColumn(name = "status_id")
     private StatusUser status;
 
     @ManyToOne
