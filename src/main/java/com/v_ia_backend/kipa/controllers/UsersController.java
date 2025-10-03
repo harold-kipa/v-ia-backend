@@ -1,5 +1,6 @@
 package com.v_ia_backend.kipa.controllers;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -15,13 +16,13 @@ import com.v_ia_backend.kipa.dto.request.UsersRequest;
 import com.v_ia_backend.kipa.entity.Users;
 import com.v_ia_backend.kipa.service.UserServiceImpl;
 
-import lombok.RequiredArgsConstructor;
-
 @RestController
 @RequestMapping("/user")
 public class UsersController {
 
-    private final UserServiceImpl userService;
+    @Autowired
+    private UserServiceImpl userService;
+
     public UsersController(UserServiceImpl userService) {
         this.userService = userService;
     }
@@ -36,14 +37,14 @@ public class UsersController {
         }
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<?> find(@PathVariable Integer id) {
-        try {
-            //TODO Implement Your Logic To Get Data From Service Layer Or Directly From Repository Layer
-            return new ResponseEntity<>("GetOne Result", HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    @GetMapping("/get/{id}")
+    public ResponseEntity<Object> getUserController(@PathVariable Integer id) {
+        return ResponseEntity.ok(userService.getUserById(id));
+    }
+
+    @GetMapping("/getall")
+    public ResponseEntity<Object> getAllUsersController() {
+        return ResponseEntity.ok(userService.getAllUsers());
     }
 
     @PostMapping("/create")

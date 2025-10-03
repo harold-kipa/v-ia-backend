@@ -9,6 +9,7 @@ import com.v_ia_backend.kipa.entity.Users;
 public interface UsersRepository extends JpaRepository<Users, Long> {
 
     Users findByEmail(String email);
+    Users findById(Integer id);
     Users findByIdentificationNumber(Long identificationNumber);
 
 }

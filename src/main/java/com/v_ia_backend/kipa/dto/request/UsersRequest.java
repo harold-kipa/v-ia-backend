@@ -21,10 +21,10 @@ public class UsersRequest {
     private String password;
 
     @NotNull(message = "{notNull.general}")
-    private StatusUser statusId;
+    private Long statusId;
 
     @NotNull(message = "{notNull.general}")
-    private Roles roleId;   
+    private Long roleId;   
 
     @NotEmpty(message = "{notEmpty.name}")
     @Size(min = 2, max = 50, message = "{size.name}")
@@ -37,6 +37,6 @@ public class UsersRequest {
     private String lastName;
 
     @NotNull(message = "{notNull.general}")
-    private Long identification;
+    private Long identificationNumber;
 
 }

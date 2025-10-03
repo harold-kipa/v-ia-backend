@@ -18,6 +18,7 @@ import com.v_ia_backend.kipa.service.interfaces.StatusUserService;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -62,13 +63,13 @@ public class UserServiceImpl implements UserDetailsService {
         }
 
         // Verificar duplicidad de Identification solo si tiene valor y no es Customer
-        boolean shouldCheckIdentification = request.getIdentification() != null
-                && !request.getIdentification().toString().isEmpty();
+        boolean shouldCheckIdentification = request.getIdentificationNumber() != null
+                && !request.getIdentificationNumber().toString().isEmpty();
                 //&& !Objects.equals(request.getRoleId().getId(), customerRole);
 
         Optional<Users> userByIdentification = Optional.empty();
         if (shouldCheckIdentification) {
-            userByIdentification = Optional.ofNullable(userRepository.findByIdentificationNumber(request.getIdentification()));
+            userByIdentification = Optional.ofNullable(userRepository.findByIdentificationNumber(request.getIdentificationNumber()));
 
             if (userByIdentification.isPresent() && !Objects.equals(userByIdentification.get().getStatus().getId(), delete)) {
                 throw new ConflictException(messageSource.getMessage("identification.exist", null, "", LocaleContextHolder.getLocale()));
@@ -91,11 +92,11 @@ public class UserServiceImpl implements UserDetailsService {
             user.setName(request.getName());
             user.setLastName(request.getLastName());
 
-            user.setIdentificationNumber(request.getIdentification());
+            user.setIdentificationNumber(request.getIdentificationNumber());
             user.setEmail(request.getEmail());
             user.setPassword(bcryptEncoder.encode(request.getPassword()));
+            user.setRoles(roleService.getRoleById(request.getRoleId()));
             user.setStatus(statusUserService.getStatusById(active));
-            user.setRoles(roleService.getRoleById(request.getRoleId().getId()));
             // user.setPushToken(request.getPushToken());
     }
     public Users getUserByEmail(String email) {
@@ -104,5 +105,26 @@ public class UserServiceImpl implements UserDetailsService {
             throw new UsernameNotFoundException(messageSource.getMessage("user.notfound", null, "", LocaleContextHolder.getLocale()));
         }
         return user;
+    }
+    public Users getUserById(Integer id) {
+        Users user = userRepository.findById(id);
+        if (user == null || Objects.equals(user.getStatus().getId(), delete)) {
+            throw new UsernameNotFoundException(messageSource.getMessage("user.notfound", null, "", LocaleContextHolder.getLocale()));
+        }
+        return user;
+    }
+    public List<Users> getAllUsers() {
+        List<Users> users = userRepository.findAll();
+        if (users.isEmpty()) {
+            throw new UsernameNotFoundException(messageSource.getMessage("user.notfound", null, "", LocaleContextHolder.getLocale()));
+        }
+        // Filtrar usuarios con estado eliminado
+        // List<Users> activeUsers = new ArrayList<>();
+        // for (Users user : users) {
+        //     if (!Objects.equals(user.getStatus().getId(), delete)) {
+        //         activeUsers.add(user);
+        //     }
+        // }
+        return users;
     }
 }
