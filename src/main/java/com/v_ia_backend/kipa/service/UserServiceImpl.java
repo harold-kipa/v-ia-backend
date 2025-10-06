@@ -88,6 +88,35 @@ public class UserServiceImpl implements UserDetailsService {
             return userRepository.save(newUser);
         }
     }
+
+    public Users updateUser(Integer id, UsersRequest request) {
+        Users existingUser = getUserById(id);
+
+        // Verificar duplicidad de Email si se está actualizando
+        if (request.getEmail() != null && !request.getEmail().isEmpty()
+                && !request.getEmail().equals(existingUser.getEmail())) {
+            Optional<Users> userByEmail = Optional.ofNullable(userRepository.findByEmail(request.getEmail()));
+            if (userByEmail.isPresent() && !Objects.equals(userByEmail.get().getStatus().getId(), delete)) {
+                throw new ConflictException(messageSource.getMessage("email.exist", null, "", LocaleContextHolder.getLocale()));
+            }
+        }
+
+        // Verificar duplicidad de Identification solo si tiene valor y no es Customer
+        boolean shouldCheckIdentification = request.getIdentificationNumber() != null
+                && !request.getIdentificationNumber().toString().isEmpty();
+                //&& !Objects.equals(request.getRoleId().getId(), customerRole);
+
+        if (shouldCheckIdentification && !request.getIdentificationNumber().equals(existingUser.getIdentificationNumber())) {
+            Optional<Users> userByIdentification = Optional.ofNullable(userRepository.findByIdentificationNumber(request.getIdentificationNumber()));
+            if (userByIdentification.isPresent() && !Objects.equals(userByIdentification.get().getStatus().getId(), delete)) {
+                throw new ConflictException(messageSource.getMessage("identification.exist", null, "", LocaleContextHolder.getLocale()));
+            }
+        }
+
+        createUserDetails(existingUser, request);
+        return userRepository.save(existingUser);
+    }
+
     private void createUserDetails(Users user, UsersRequest request) {
             user.setName(request.getName());
             user.setLastName(request.getLastName());
@@ -99,6 +128,7 @@ public class UserServiceImpl implements UserDetailsService {
             user.setStatus(statusUserService.getStatusById(active));
             // user.setPushToken(request.getPushToken());
     }
+
     public Users getUserByEmail(String email) {
         Users user = userRepository.findByEmail(email);
         if (user == null || Objects.equals(user.getStatus().getId(), delete)) {

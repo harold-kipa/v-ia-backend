@@ -53,6 +53,12 @@ public class UsersController {
         return ResponseEntity.ok(user);
     }
 
+    @PutMapping("/update/{id}")
+    public ResponseEntity<Object> updateUserController(@PathVariable Integer id, @RequestBody UsersRequest request) {
+        Users updatedUser = userService.updateUser(id, request);
+        return ResponseEntity.ok(updatedUser);
+    }
+
     @PutMapping()
     public ResponseEntity<?> update(@RequestBody UsersRequest dto) {
         try {
