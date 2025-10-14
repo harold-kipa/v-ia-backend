@@ -1,5 +1,11 @@
 package com.v_ia_backend.kipa.service;
 
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -15,12 +21,6 @@ import com.v_ia_backend.kipa.exception.listexceptions.ConflictException;
 import com.v_ia_backend.kipa.repository.UsersRepository;
 import com.v_ia_backend.kipa.service.interfaces.RoleService;
 import com.v_ia_backend.kipa.service.interfaces.StatusUserService;
-
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 
 
 @Service
@@ -115,6 +115,13 @@ public class UserServiceImpl implements UserDetailsService {
 
         createUserDetails(existingUser, request);
         return userRepository.save(existingUser);
+    }
+
+    public Users updateUserStatus(Integer id) {
+        Users user = getUserById(id);
+        Long statusId = Objects.equals(user.getStatus().getId(), active) ? delete : active;
+        user.setStatus(statusUserService.getStatusById(statusId));
+        return userRepository.save(user);
     }
 
     private void createUserDetails(Users user, UsersRequest request) {

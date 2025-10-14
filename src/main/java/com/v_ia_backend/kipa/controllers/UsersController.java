@@ -58,6 +58,12 @@ public class UsersController {
         return ResponseEntity.ok(updatedUser);
     }
 
+    @PutMapping("/update/status/{id}")
+    public ResponseEntity<Object> updateUserStatusController(@PathVariable Integer id) {
+        Users updatedUser = userService.updateUserStatus(id);
+        return ResponseEntity.ok(updatedUser);
+    }
+
     @GetMapping("/getall/roles")
     public ResponseEntity<Object> getAllRolesController() {
         List<Roles> roles = roleService.getAllRoles();
