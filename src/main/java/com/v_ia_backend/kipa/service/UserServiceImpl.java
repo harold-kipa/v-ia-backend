@@ -118,7 +118,7 @@ public class UserServiceImpl implements UserDetailsService {
     }
 
     public Users updateUserStatus(Integer id) {
-        Users user = getUserById(id);
+        Users user = getDeletedUserById(id);
         Long statusId = Objects.equals(user.getStatus().getId(), active) ? delete : active;
         user.setStatus(statusUserService.getStatusById(statusId));
         return userRepository.save(user);
@@ -146,6 +146,13 @@ public class UserServiceImpl implements UserDetailsService {
     public Users getUserById(Integer id) {
         Users user = userRepository.findById(id);
         if (user == null || Objects.equals(user.getStatus().getId(), delete)) {
+            throw new UsernameNotFoundException(messageSource.getMessage("user.notfound", null, "", LocaleContextHolder.getLocale()));
+        }
+        return user;
+    }
+    public Users getDeletedUserById(Integer id) {
+        Users user = userRepository.findById(id);
+        if (user == null) {
             throw new UsernameNotFoundException(messageSource.getMessage("user.notfound", null, "", LocaleContextHolder.getLocale()));
         }
         return user;
