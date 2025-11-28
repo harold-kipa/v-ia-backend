@@ -20,40 +20,47 @@ public class Movements implements Serializable {
     @Column(name = "movement_id")
     private Long id;
 
-    @Column(name = "company_code_id")
+    @ManyToOne
+    @JoinColumn(name = "company_code_id")
     private Subaccounts companyCodeId;
 
     @Column(name = "company_description")
     private String companyDescription;
 
-    @Column(name = "movement_date")
+    @Column(name = "movement_date", nullable = false, updatable = false,
+            columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private Timestamp movementDate;
 
-    @Column(name = "voucher_type_id")
+    @ManyToOne
+    @JoinColumn(name = "voucher_type_id")
     private VoucherType voucherTypeId;
 
     @Column(name = "voucher_number")
     private Long voucherNumber;
 
-    @Column(name = "higher_account_id")
-    private HigherAccounts   higherAccountId;
+    @ManyToOne
+    @JoinColumn(name = "higher_account_id")
+    private HigherAccounts higherAccountId;
 
     @Column(name = "movement_description")
     private String movementDescription;
 
-    @Column(name = "auxiliary_id")
+    @ManyToOne
+    @JoinColumn(name = "auxiliary_id")
     private Auxiliaries auxiliaryId;
 
     @Column(name = "status")
     private String status;
 
     @Column(name = "voucher_amount")
-    private Long voucherAmount;
+    private String voucherAmount;
 
-    @Column(name = "nature_id")
+    @ManyToOne
+    @JoinColumn(name = "nature_id")
     private Natures natureId;
 
-    @Column(name = "cost_center_id")
+    @ManyToOne
+    @JoinColumn(name = "cost_center_id")
     private CostCenters costCenterId;
 
     @Column(name = "foreign_currency_amount")

@@ -20,5 +20,5 @@ public class Natures implements Serializable {
     private Long id;
 
     @Column(name = "nature_description")
-    private Long natureDescription;
+    private String natureDescription;
 }

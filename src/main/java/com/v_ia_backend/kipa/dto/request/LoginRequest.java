@@ -6,7 +6,7 @@ import lombok.Data;
 import jakarta.validation.constraints.Pattern;
 
 @Data
-public class LoginRequest {
+public class    LoginRequest {
 
     private static final long serialVersionUID = 5926468583005150707L;
 

@@ -2,10 +2,13 @@ package com.v_ia_backend.kipa.service;
 
 import org.springframework.stereotype.Service;
 
+import com.v_ia_backend.kipa.dto.request.MovementFilterRequest;
+import com.v_ia_backend.kipa.entity.HigherAccounts;
 import com.v_ia_backend.kipa.entity.Movements;
 import com.v_ia_backend.kipa.repository.MovementsRepositoriy;
 import com.v_ia_backend.kipa.service.interfaces.MovementService;
 
+import java.util.Comparator;
 import java.util.List;
 
 
@@ -17,8 +20,18 @@ public class MovementServiceImpl implements MovementService {
     }
 
     @Override
-    public List<Movements> getAllMovements() {
-        return MovementsRepositoriy.findAll();
+    public List<Movements> getAllMovementsByFilter(MovementFilterRequest movementFilterRequest) {
+        List<Movements> movements = this.MovementsRepositoriy.findByMovementDateBetweenAndHigherAccountId_IdBetween(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate(), movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId());
+        movements.sort(
+            Comparator.comparing(
+                (Movements m) -> m.getHigherAccountId(),
+                Comparator.nullsLast(
+                    Comparator.comparing(HigherAccounts::getId)
+                )
+            )
+        );
+        
+        return movements;
     }
 
     @Override

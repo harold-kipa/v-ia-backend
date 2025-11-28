@@ -2,12 +2,8 @@ package com.v_ia_backend.kipa.controllers;
 
 import java.util.List;
 
-import javax.management.relation.Role;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,7 +17,6 @@ import com.v_ia_backend.kipa.entity.Roles;
 import com.v_ia_backend.kipa.entity.Users;
 import com.v_ia_backend.kipa.service.RoleServiceImpl;
 import com.v_ia_backend.kipa.service.UserServiceImpl;
-import com.v_ia_backend.kipa.service.interfaces.StatusUserService;
 
 @RestController
 @RequestMapping("/user")
