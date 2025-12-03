@@ -48,9 +48,9 @@ public class MovementServiceImpl implements MovementService {
 
 
         List<MovementListResponse> movementListResponse = new java.util.ArrayList<>();
-        movements.forEach(movement -> {
-            long[] beforeCredit = {0L};
-            long[] beforeDebit = {0L};
+            movements.forEach(movement -> {
+            java.math.BigDecimal[] beforeCredit = {java.math.BigDecimal.ZERO};
+            java.math.BigDecimal[] beforeDebit = {java.math.BigDecimal.ZERO};
             MovementListResponse movementListResponse1 = new MovementListResponse();
             List<MovementTableResponse> tableResponse = new java.util.ArrayList<>();
             cuentasUnicas.forEach(cuentaUnica -> {
@@ -60,18 +60,34 @@ public class MovementServiceImpl implements MovementService {
                     tableResponse1.setAuxiliaryId(movement.getAuxiliaryId());
                     tableResponse1.setMovementDate(movement.getMovementDate());
                     tableResponse.add(tableResponse1);
-                    if (movement.getNatureId().getId() == 1L){
-                        beforeDebit[0] += Long.parseLong(movement.getVoucherAmount());
+                    // Parse voucherAmount which may contain commas and decimals, e.g. "-163,072,118.23"
+                    String raw = movement.getVoucherAmount();
+                    java.math.BigDecimal amount = java.math.BigDecimal.ZERO;
+                    if(raw != null && !raw.isBlank()){
+                        // Normalize: remove grouping separators and trim
+                        String cleaned = raw.replaceAll("[,\\s]", "");
+                        try{
+                            amount = new java.math.BigDecimal(cleaned);
+                        } catch (NumberFormatException ex){
+                            // If parsing fails, fallback to zero to avoid crashing; log the problem
+                            System.err.println("Failed parsing voucherAmount='" + raw + "' for movement id=" + movement.getId() + ": " + ex.getMessage());
+                            amount = java.math.BigDecimal.ZERO;
+                        }
+                    }
+                    if (movement.getNatureId() != null && movement.getNatureId().getId() == 1L){
+                        beforeDebit[0] = beforeDebit[0].add(amount);
                     } else{
-                        beforeCredit[0] += Long.parseLong(movement.getVoucherAmount());
+                        beforeCredit[0] = beforeCredit[0].add(amount);
                     }
                     // beforeCredit[0] += movement.getVoucherNumber();
                 }
 
             });
             movementListResponse1.setMovementsList(tableResponse);
-            movementListResponse1.setCredit(beforeCredit[0]);
-            movementListResponse1.setDebit(beforeDebit[0]);
+            // MovementListResponse expects Longs; convert by rounding to nearest whole unit
+            movementListResponse1.setCredit(beforeCredit[0].setScale(0, java.math.RoundingMode.HALF_UP).longValue());
+            movementListResponse1.setDebit(beforeDebit[0].setScale(0, java.math.RoundingMode.HALF_UP).longValue());
+            movementListResponse1.setBalance(beforeDebit[0].subtract(beforeCredit[0]).setScale(0, java.math.RoundingMode.HALF_UP).longValue());
             movementListResponse.add(movementListResponse1);
             // movementListResponse1.setBalance(BigDecimal.ZERO.longValue());
         });
