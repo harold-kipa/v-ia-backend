@@ -18,7 +18,16 @@ public class HigherAccountServiceImpl implements HigherAccountService {
 
     @Override
     public List<HigherAccounts> getAllHigherAccounts() {
-        return HigherAccountsRepositoriy.findAll();
+        List<HigherAccounts> higherAccounts = HigherAccountsRepositoriy.findAll();
+        List<HigherAccounts> finalAccounts = new java.util.ArrayList<>();
+        higherAccounts.forEach(
+            account -> {
+                if (!"NO USAR".equals(account.getHigherAccountDescription())){
+                    finalAccounts.add(account);
+                }
+            }
+        );
+        return finalAccounts;
     }
 
     @Override

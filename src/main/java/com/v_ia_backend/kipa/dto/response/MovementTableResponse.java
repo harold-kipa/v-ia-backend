@@ -14,12 +14,16 @@ public class MovementTableResponse {
     private Timestamp movementDate;
     private HigherAccounts higherAccountId;
     private Auxiliaries auxiliaryId;
+    private CostCenters costCenterId;
+    private String movementDescription;
 
     public MovementTableResponse(Movements movements) {
         this.id = movements.getId();
         this.movementDate = movements.getMovementDate();
         this.higherAccountId = movements.getHigherAccountId();
         this.auxiliaryId = movements.getAuxiliaryId();
+        this.costCenterId = movements.getCostCenterId();
+        this.movementDescription = movements.getMovementDescription();
     }
     public MovementTableResponse() {
 

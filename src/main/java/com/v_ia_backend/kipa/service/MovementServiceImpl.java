@@ -48,7 +48,7 @@ public class MovementServiceImpl implements MovementService {
 
 
         List<MovementListResponse> movementListResponse = new java.util.ArrayList<>();
-            movements.forEach(movement -> {
+        movements.forEach(movement -> {
             java.math.BigDecimal[] beforeCredit = {java.math.BigDecimal.ZERO};
             java.math.BigDecimal[] beforeDebit = {java.math.BigDecimal.ZERO};
             MovementListResponse movementListResponse1 = new MovementListResponse();
@@ -59,6 +59,8 @@ public class MovementServiceImpl implements MovementService {
                     tableResponse1.setHigherAccountId(movement.getHigherAccountId());
                     tableResponse1.setAuxiliaryId(movement.getAuxiliaryId());
                     tableResponse1.setMovementDate(movement.getMovementDate());
+                    tableResponse1.setCostCenterId(movement.getCostCenterId());
+                    tableResponse1.setMovementDescription(movement.getMovementDescription());
                     tableResponse.add(tableResponse1);
                     // Parse voucherAmount which may contain commas and decimals, e.g. "-163,072,118.23"
                     String raw = movement.getVoucherAmount();
@@ -87,7 +89,7 @@ public class MovementServiceImpl implements MovementService {
             // MovementListResponse expects Longs; convert by rounding to nearest whole unit
             movementListResponse1.setCredit(beforeCredit[0].setScale(0, java.math.RoundingMode.HALF_UP).longValue());
             movementListResponse1.setDebit(beforeDebit[0].setScale(0, java.math.RoundingMode.HALF_UP).longValue());
-            movementListResponse1.setBalance(beforeDebit[0].subtract(beforeCredit[0]).setScale(0, java.math.RoundingMode.HALF_UP).longValue());
+            movementListResponse1.setBalance(beforeDebit[0].add(beforeCredit[0]).setScale(0, java.math.RoundingMode.HALF_UP).longValue());
             movementListResponse.add(movementListResponse1);
             // movementListResponse1.setBalance(BigDecimal.ZERO.longValue());
         });
