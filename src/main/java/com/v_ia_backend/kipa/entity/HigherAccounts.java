@@ -11,7 +11,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @Entity
 @Getter
 @Setter
-@Table(name = "tbl_higher_accounts")
+@Table(name = "tbl_higher_accounts_new")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class HigherAccounts implements Serializable {
     @Id

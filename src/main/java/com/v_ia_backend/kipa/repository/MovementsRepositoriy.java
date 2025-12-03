@@ -10,6 +10,6 @@ import com.v_ia_backend.kipa.entity.Movements;
 
 @Repository
 public interface MovementsRepositoriy extends JpaRepository<Movements, Long> {
-    List<Movements> findByMovementDateBetweenAndHigherAccountId_IdBetween(Timestamp fechaInicio, Timestamp fechaFin, Long initialAccount, Long finalAccount);
+    List<Movements> findByMovementDateBetweenAndHigherAccountId_IdBetweenAndAuxiliaryId_Id(Timestamp fechaInicio, Timestamp fechaFin, Long initialAccount, Long finalAccount, Long auxiliaryId);
 
 }
