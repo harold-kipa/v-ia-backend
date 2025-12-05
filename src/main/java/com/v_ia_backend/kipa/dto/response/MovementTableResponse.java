@@ -15,7 +15,7 @@ public class MovementTableResponse {
     private HigherAccounts higherAccountId;
     private Auxiliaries auxiliaryId;
     private CostCenters costCenterId;
-    private String movementDescription;
+    private String voucherAmount;
 
     public MovementTableResponse(Movements movements) {
         this.id = movements.getId();
@@ -23,7 +23,7 @@ public class MovementTableResponse {
         this.higherAccountId = movements.getHigherAccountId();
         this.auxiliaryId = movements.getAuxiliaryId();
         this.costCenterId = movements.getCostCenterId();
-        this.movementDescription = movements.getMovementDescription();
+        this.voucherAmount = movements.getVoucherAmount();
     }
     public MovementTableResponse() {
 

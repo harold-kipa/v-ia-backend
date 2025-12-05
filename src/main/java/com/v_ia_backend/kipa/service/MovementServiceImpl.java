@@ -49,48 +49,77 @@ public class MovementServiceImpl implements MovementService {
 
         List<MovementListResponse> movementListResponse = new java.util.ArrayList<>();
         movements.forEach(movement -> {
-            java.math.BigDecimal[] beforeCredit = {java.math.BigDecimal.ZERO};
-            java.math.BigDecimal[] beforeDebit = {java.math.BigDecimal.ZERO};
-            MovementListResponse movementListResponse1 = new MovementListResponse();
-            List<MovementTableResponse> tableResponse = new java.util.ArrayList<>();
-            cuentasUnicas.forEach(cuentaUnica -> {
-                MovementTableResponse tableResponse1 = new MovementTableResponse();
-                if(movement.getHigherAccountId().getId().equals(cuentaUnica)){
-                    tableResponse1.setHigherAccountId(movement.getHigherAccountId());
-                    tableResponse1.setAuxiliaryId(movement.getAuxiliaryId());
-                    tableResponse1.setMovementDate(movement.getMovementDate());
-                    tableResponse1.setCostCenterId(movement.getCostCenterId());
-                    tableResponse1.setMovementDescription(movement.getMovementDescription());
-                    tableResponse.add(tableResponse1);
-                    // Parse voucherAmount which may contain commas and decimals, e.g. "-163,072,118.23"
-                    String raw = movement.getVoucherAmount();
-                    java.math.BigDecimal amount = java.math.BigDecimal.ZERO;
-                    if(raw != null && !raw.isBlank()){
-                        // Normalize: remove grouping separators and trim
-                        String cleaned = raw.replaceAll("[,\\s]", "");
-                        try{
-                            amount = new java.math.BigDecimal(cleaned);
-                        } catch (NumberFormatException ex){
-                            // If parsing fails, fallback to zero to avoid crashing; log the problem
-                            System.err.println("Failed parsing voucherAmount='" + raw + "' for movement id=" + movement.getId() + ": " + ex.getMessage());
-                            amount = java.math.BigDecimal.ZERO;
+            MovementListResponse movementListResponse1 = movementListResponse.stream().filter(p -> p.getMovementDescription().equals(movement.getMovementDescription())).findFirst().orElse(null);
+        
+            if (movementListResponse1 == null){
+                // List<MovementTableResponse> tableResponse = new java.util.ArrayList<>();
+                // MovementTableResponse tableResponse1 = new MovementTableResponse();
+                movementListResponse1 = new MovementListResponse();
+                movementListResponse1.setHigherAccountId(movement.getHigherAccountId());
+                movementListResponse1.setAuxiliaryId(movement.getAuxiliaryId());
+                movementListResponse1.setMovementDate(movement.getMovementDate());
+                movementListResponse1.setCostCenterId(movement.getCostCenterId());
+                movementListResponse1.setMovementDescription(movement.getMovementDescription());
+                movementListResponse1.setId(movement.getId());
+                // tableResponse.add(tableResponse1);
+                // Parse voucherAmount which may contain commas and decimals, e.g. "-163,072,118.23"
+                // beforeCredit[0] += movement.getVoucherNumber();
+                
+                // cuentasUnicas.forEach(cuentaUnica -> {
+                    // if(movement.getHigherAccountId().getId().equals(cuentaUnica)){
+                        // }
+                        // });
+                        // movementListResponse1.setMovementsList(tableResponse);
+                        // MovementListResponse expects Longs; convert by rounding to nearest whole unit
+                        String raw = movement.getVoucherAmount();
+                        java.math.BigDecimal amount = java.math.BigDecimal.ZERO;
+                        if(raw != null && !raw.isBlank()){
+                            // Normalize: remove grouping separators and trim
+                            String cleaned = raw.replaceAll("[,\\s]", "");
+                            try{
+                                amount = new java.math.BigDecimal(cleaned);
+                            } catch (NumberFormatException ex){
+                                // If parsing fails, fallback to zero to avoid crashing; log the problem
+                                System.err.println("Failed parsing voucherAmount='" + raw + "' for movement id=" + movement.getId() + ": " + ex.getMessage());
+                                amount = java.math.BigDecimal.ZERO;
+                            }
                         }
+                        if (movement.getNatureId() != null && movement.getNatureId().getId() == 1L){
+                            // beforeDebit[0] = beforeDebit[0].add(amount);
+                            movementListResponse1.setCredit(0L);
+                            movementListResponse1.setDebit(amount.setScale(0, java.math.RoundingMode.HALF_UP).longValue());
+                        } else{
+                            // beforeCredit[0] = beforeCredit[0].add(amount);
+                            movementListResponse1.setCredit(amount.setScale(0, java.math.RoundingMode.HALF_UP).longValue());
+                            movementListResponse1.setDebit(0L);
+                        }
+                        movementListResponse1.setBalance(movementListResponse1.getDebit() + movementListResponse1.getCredit());
+                        movementListResponse.add(movementListResponse1);
+            }
+            else{
+                String raw = movement.getVoucherAmount();
+                java.math.BigDecimal amount = java.math.BigDecimal.ZERO;
+                if(raw != null && !raw.isBlank()){
+                    // Normalize: remove grouping separators and trim
+                    String cleaned = raw.replaceAll("[,\\s]", "");
+                    try{
+                        amount = new java.math.BigDecimal(cleaned);
+                    } catch (NumberFormatException ex){
+                        // If parsing fails, fallback to zero to avoid crashing; log the problem
+                        System.err.println("Failed parsing voucherAmount='" + raw + "' for movement id=" + movement.getId() + ": " + ex.getMessage());
+                        amount = java.math.BigDecimal.ZERO;
                     }
-                    if (movement.getNatureId() != null && movement.getNatureId().getId() == 1L){
-                        beforeDebit[0] = beforeDebit[0].add(amount);
-                    } else{
-                        beforeCredit[0] = beforeCredit[0].add(amount);
-                    }
-                    // beforeCredit[0] += movement.getVoucherNumber();
                 }
+                if (movement.getNatureId() != null && movement.getNatureId().getId() == 1L){
+                    // beforeDebit[0] = beforeDebit[0].add(amount);
+                    movementListResponse1.setDebit(movementListResponse1.getDebit() + amount.setScale(0, java.math.RoundingMode.HALF_UP).longValue());
+                } else{
+                    // beforeCredit[0] = beforeCredit[0].add(amount);
+                    movementListResponse1.setCredit(movementListResponse1.getCredit() + amount.setScale(0, java.math.RoundingMode.HALF_UP).longValue());
+                }
+                movementListResponse1.setBalance(movementListResponse1.getDebit() + movementListResponse1.getCredit());
+            }
 
-            });
-            movementListResponse1.setMovementsList(tableResponse);
-            // MovementListResponse expects Longs; convert by rounding to nearest whole unit
-            movementListResponse1.setCredit(beforeCredit[0].setScale(0, java.math.RoundingMode.HALF_UP).longValue());
-            movementListResponse1.setDebit(beforeDebit[0].setScale(0, java.math.RoundingMode.HALF_UP).longValue());
-            movementListResponse1.setBalance(beforeDebit[0].add(beforeCredit[0]).setScale(0, java.math.RoundingMode.HALF_UP).longValue());
-            movementListResponse.add(movementListResponse1);
             // movementListResponse1.setBalance(BigDecimal.ZERO.longValue());
         });
         
