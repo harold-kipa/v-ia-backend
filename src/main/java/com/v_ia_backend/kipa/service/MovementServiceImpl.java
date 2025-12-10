@@ -28,7 +28,13 @@ public class MovementServiceImpl implements MovementService {
 
     @Override
     public List<MovementListResponse> getAllMovementsByFilter(MovementFilterRequest movementFilterRequest) {
-        List<Movements> movements = this.MovementsRepositoriy.findByMovementDateBetweenAndHigherAccountId_IdBetweenAndAuxiliaryId_Id(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate(), movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId(), movementFilterRequest.getAuxiliaryId());
+        List<Movements> movements;
+        if(movementFilterRequest.getAuxiliaryId() == null){
+            movements = this.MovementsRepositoriy.findByMovementDateBetweenAndHigherAccountId_IdBetween(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate(), movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId());
+        }
+        else{
+            movements = this.MovementsRepositoriy.findByMovementDateBetweenAndHigherAccountId_IdBetweenAndAuxiliaryId_Id(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate(), movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId(), movementFilterRequest.getAuxiliaryId());
+        }
         movements.sort(
             Comparator.comparing(Movements::getMovementDescription)
             .thenComparing(
