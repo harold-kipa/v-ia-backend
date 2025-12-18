@@ -11,7 +11,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @Entity
 @Getter
 @Setter
-@Table(name = "tbl_higher_accounts_new")
+@Table(name = "tbl_higher_accounts_final")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class HigherAccounts implements Serializable {
     @Id
@@ -24,5 +24,14 @@ public class HigherAccounts implements Serializable {
 
     @Column(name = "higher_account_description")
     private String higherAccountDescription;
+
+    @Column(name = "account_number_homologated")
+    private Long accountNumberHomologated;
+
+    @Column(name = "account_name_homologated")
+    private String accountNameHomologated;
+
+    @Column(name = "higher_account_homologated_id")
+    private Long higherAccountHomologatedId;
     
 }

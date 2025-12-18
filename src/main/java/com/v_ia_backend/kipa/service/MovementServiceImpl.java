@@ -1,16 +1,24 @@
 package com.v_ia_backend.kipa.service;
 
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.v_ia_backend.kipa.dto.request.MovementFilterRequest;
 import com.v_ia_backend.kipa.dto.response.MovementListResponse;
 import com.v_ia_backend.kipa.dto.response.MovementTableResponse;
+import com.v_ia_backend.kipa.entity.Files;
 import com.v_ia_backend.kipa.entity.HigherAccounts;
 import com.v_ia_backend.kipa.entity.Movements;
+import com.v_ia_backend.kipa.exception.listexceptions.ConflictException;
 import com.v_ia_backend.kipa.repository.MovementsRepositoriy;
 import com.v_ia_backend.kipa.service.interfaces.MovementService;
+import java.nio.file.Path;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
+import java.net.URL;
+import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +37,10 @@ public class MovementServiceImpl implements MovementService {
     @Override
     public List<MovementListResponse> getAllMovementsByFilter(MovementFilterRequest movementFilterRequest) {
         List<Movements> movements;
-        if(movementFilterRequest.getAuxiliaryId() == null){
+        if(movementFilterRequest.getAuxiliaryId() == null && movementFilterRequest.getInitialAccountId() == null && movementFilterRequest.getFinalAccountId() == null){
+            movements = this.MovementsRepositoriy.findByMovementDateBetween(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate());
+        }
+        else if(movementFilterRequest.getAuxiliaryId() == null){
             movements = this.MovementsRepositoriy.findByMovementDateBetweenAndHigherAccountId_IdBetween(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate(), movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId());
         }
         else{
@@ -182,6 +193,21 @@ public class MovementServiceImpl implements MovementService {
 
     @Override
     public Movements getMovementById(Long id) {
-        return MovementsRepositoriy.findById(id).orElse(null);
+        Movements movements = MovementsRepositoriy.findById(id).orElse(null);
+        try {
+            String url = movements.getPoContractId()
+                          .getFileId()
+                          .getFileUrl()
+                          .trim();
+            InputStream is = new URL(url).openStream();
+            byte[] pdfBytes = is.readAllBytes();
+
+            movements.getPoContractId()
+                    .getFileId()
+                    .setFileUrl(Base64.getEncoder().encodeToString(pdfBytes));
+
+        } catch (IOException e) {
+        }
+        return movements;
     }
 }

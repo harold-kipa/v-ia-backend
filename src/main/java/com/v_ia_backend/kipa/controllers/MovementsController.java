@@ -1,6 +1,8 @@
 package com.v_ia_backend.kipa.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -11,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.v_ia_backend.kipa.dto.request.LoginRequest;
 import com.v_ia_backend.kipa.dto.request.MovementFilterRequest;
+import com.v_ia_backend.kipa.entity.Movements;
 // import com.v_ia_backend.kipa.dto.request.MovementsRequest; 
 import com.v_ia_backend.kipa.service.MovementServiceImpl;
 
@@ -30,6 +33,12 @@ public class MovementsController {
     @GetMapping("/get/{id}")
     public ResponseEntity<Object> getMovementController(@PathVariable Long id) {
         return ResponseEntity.ok(movementService.getMovementById(id));
+        // Movements pdfResponse = movementService.getMovementById(id);
+        // return ResponseEntity.ok()
+        //             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename= massiveMachinerySolicitude.pdf")
+        //             .contentType(MediaType.APPLICATION_PDF)
+        //             .body(pdfResponse.getPoContractId().getFileId().getFileUrl());
+
     }
 
     @PostMapping("/get-filter")

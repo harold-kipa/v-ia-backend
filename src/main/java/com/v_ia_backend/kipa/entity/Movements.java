@@ -12,7 +12,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @Entity
 @Getter
 @Setter
-@Table(name = "tbl_movements_final_new_2")
+@Table(name = "tbl_movements_final_final")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Movements implements Serializable {
     @Id
@@ -68,4 +68,13 @@ public class Movements implements Serializable {
 
     @Column(name = "currency")
     private String currency;
+
+    @ManyToOne
+    @JoinColumn(name = "po_contract_id")
+    private PoContract poContractId;
+
+    @ManyToOne
+    @JoinColumn(name = "payments_accounts_relation_id")
+    private PaymentsAccountsRelation paymentsAccountsRelationId;
+
 }
