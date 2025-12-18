@@ -22,4 +22,10 @@ public class MovementFilterRequest {
 
     private Long auxiliaryId;
 
+    private Long poContractId;
+
+    private Long paymentsAccountsRelationId;
+
+    private Long documentNumber;
+
 }

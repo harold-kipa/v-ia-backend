@@ -9,6 +9,8 @@ import com.v_ia_backend.kipa.dto.response.MovementTableResponse;
 import com.v_ia_backend.kipa.entity.Files;
 import com.v_ia_backend.kipa.entity.HigherAccounts;
 import com.v_ia_backend.kipa.entity.Movements;
+import com.v_ia_backend.kipa.entity.PaymentsAccountsRelation;
+import com.v_ia_backend.kipa.entity.PoContract;
 import com.v_ia_backend.kipa.exception.listexceptions.ConflictException;
 import com.v_ia_backend.kipa.repository.MovementsRepositoriy;
 import com.v_ia_backend.kipa.service.interfaces.MovementService;
@@ -18,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
@@ -29,19 +32,53 @@ import java.util.stream.Collectors;
 @Service
 public class MovementServiceImpl implements MovementService {
     private final MovementsRepositoriy MovementsRepositoriy;
+    private final PaymentsAccountsRelationServiceImpl paymentsAccountsRelationServiceImpl;
     public record MovementGroupKey(Long higherAccountId, String movementDescription) {}
-    public MovementServiceImpl(MovementsRepositoriy MovementsRepositoriy) {
+    public MovementServiceImpl(MovementsRepositoriy MovementsRepositoriy, PaymentsAccountsRelationServiceImpl paymentsAccountsRelationServiceImpl) {
         this.MovementsRepositoriy = MovementsRepositoriy;
+        this.paymentsAccountsRelationServiceImpl = paymentsAccountsRelationServiceImpl;
     }
 
     @Override
     public List<MovementListResponse> getAllMovementsByFilter(MovementFilterRequest movementFilterRequest) {
-        List<Movements> movements;
-        if(movementFilterRequest.getAuxiliaryId() == null && movementFilterRequest.getInitialAccountId() == null && movementFilterRequest.getFinalAccountId() == null){
+        List<Movements> movements = new ArrayList<>();
+        
+        if (movementFilterRequest.getPoContractId() != null) {
+
+            movements = MovementsRepositoriy
+                .findByPoContractId_Id(movementFilterRequest.getPoContractId());
+
+        }
+        else if (movementFilterRequest.getPaymentsAccountsRelationId() != null) {
+
+            List<PaymentsAccountsRelation> relations =
+                paymentsAccountsRelationServiceImpl
+                    .getPaymentsAccountsRelationByConsecutiveNumber(
+                        movementFilterRequest.getPaymentsAccountsRelationId().toString()
+                    );
+
+            for (PaymentsAccountsRelation par : relations) {
+                movements.addAll(
+                    MovementsRepositoriy
+                        .findByPaymentsAccountsRelationId_Id(par.getId())
+                );
+            }
+        }
+        else if(movementFilterRequest.getDocumentNumber() != null){
+            PaymentsAccountsRelation paymentsAccountsRelation = paymentsAccountsRelationServiceImpl.getPaymentsAccountsRelationById(movementFilterRequest.getDocumentNumber());
+            movements = this.MovementsRepositoriy.findByPaymentsAccountsRelationId_Id(paymentsAccountsRelation.getId());
+        }
+        else if(movementFilterRequest.getAuxiliaryId() == null && movementFilterRequest.getInitialAccountId() == null && movementFilterRequest.getFinalAccountId() == null){
+            movements = this.MovementsRepositoriy.findByMovementDateBetween(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate());
+        }
+        else if(movementFilterRequest.getAuxiliaryId() == null && movementFilterRequest.getInitialAccountId() == null && movementFilterRequest.getFinalAccountId() == null){
             movements = this.MovementsRepositoriy.findByMovementDateBetween(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate());
         }
         else if(movementFilterRequest.getAuxiliaryId() == null){
             movements = this.MovementsRepositoriy.findByMovementDateBetweenAndHigherAccountId_IdBetween(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate(), movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId());
+        }
+        else if(movementFilterRequest.getInitialAccountId() == null && movementFilterRequest.getFinalAccountId() == null){
+            movements = this.MovementsRepositoriy.findByAuxiliaryId_Id(movementFilterRequest.getAuxiliaryId());
         }
         else{
             movements = this.MovementsRepositoriy.findByMovementDateBetweenAndHigherAccountId_IdBetweenAndAuxiliaryId_Id(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate(), movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId(), movementFilterRequest.getAuxiliaryId());
@@ -194,6 +231,9 @@ public class MovementServiceImpl implements MovementService {
     @Override
     public Movements getMovementById(Long id) {
         Movements movements = MovementsRepositoriy.findById(id).orElse(null);
+        if (movements.getPoContractId() == null || movements.getPoContractId().getFileId() == null) {
+            return movements;
+        };
         try {
             String url = movements.getPoContractId()
                           .getFileId()

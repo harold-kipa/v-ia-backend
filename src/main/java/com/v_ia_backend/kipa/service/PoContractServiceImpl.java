@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import com.v_ia_backend.kipa.entity.PoContract;
 import com.v_ia_backend.kipa.repository.PoContractRepositoriy;
 import com.v_ia_backend.kipa.service.interfaces.PoContractService;
+import com.v_ia_backend.kipa.interfase.PoContractInterfase;
 
 import java.util.List;
 
@@ -17,8 +18,9 @@ public class PoContractServiceImpl implements PoContractService {
     }
 
     @Override
-    public List<PoContract> getAllPoContract() {
-        return poContractRepositoriy.findAll();
+    public List<PoContractInterfase> getAllPoContract() {
+        List<PoContractInterfase> poContractList = poContractRepositoriy.findAllProjectedBy();
+        return poContractList;
     }
 
     @Override
