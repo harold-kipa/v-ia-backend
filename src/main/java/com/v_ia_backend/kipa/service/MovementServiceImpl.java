@@ -12,6 +12,7 @@ import com.v_ia_backend.kipa.entity.Movements;
 import com.v_ia_backend.kipa.entity.PaymentsAccountsRelation;
 import com.v_ia_backend.kipa.entity.PoContract;
 import com.v_ia_backend.kipa.exception.listexceptions.ConflictException;
+import com.v_ia_backend.kipa.interfase.MovementsInterfase;
 import com.v_ia_backend.kipa.repository.MovementsRepositoriy;
 import com.v_ia_backend.kipa.service.interfaces.MovementService;
 import java.nio.file.Path;
@@ -40,8 +41,8 @@ public class MovementServiceImpl implements MovementService {
     }
 
     @Override
-    public List<MovementListResponse> getAllMovementsByFilter(MovementFilterRequest movementFilterRequest) {
-        List<Movements> movements = new ArrayList<>();
+    public List<MovementTableResponse> getAllMovementsByFilter(MovementFilterRequest movementFilterRequest) {
+        List<MovementsInterfase> movements = new ArrayList<>();
         
         if (movementFilterRequest.getPoContractId() != null) {
 
@@ -84,9 +85,9 @@ public class MovementServiceImpl implements MovementService {
             movements = this.MovementsRepositoriy.findByMovementDateBetweenAndHigherAccountId_IdBetweenAndAuxiliaryId_Id(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate(), movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId(), movementFilterRequest.getAuxiliaryId());
         }
         movements.sort(
-            Comparator.comparing(Movements::getMovementDescription)
+            Comparator.comparing(MovementsInterfase::getMovementDescription)
             .thenComparing(
-                (Movements m) -> m.getHigherAccountId(),
+                (MovementsInterfase m) -> m.getHigherAccountId(),
                 Comparator.nullsLast(
                 Comparator.comparing(HigherAccounts::getId)
                 )
@@ -98,8 +99,6 @@ public class MovementServiceImpl implements MovementService {
                 .collect(Collectors.toList());
 
         System.out.println(cuentasUnicas);
-        List<MovementListResponse> responses = new java.util.ArrayList<>();
-
 
         List<MovementListResponse> movementListResponse = new java.util.ArrayList<>();
         movements.forEach(movement -> {
@@ -176,6 +175,31 @@ public class MovementServiceImpl implements MovementService {
 
             // movementListResponse1.setBalance(BigDecimal.ZERO.longValue());
         });
+
+        List<MovementTableResponse> responses = new ArrayList<>();
+        cuentasUnicas.forEach(cuentaUnica -> {
+            List<MovementListResponse> movementListResponse1 = new ArrayList<>();
+            movementListResponse.forEach(movement -> {
+                if(movement.getHigherAccountId().getId().equals(cuentaUnica)){
+                    movementListResponse1.add(movement);
+                }
+            });
+            MovementTableResponse tableResponse = new MovementTableResponse();
+            if (movementListResponse1 != null && !movementListResponse1.isEmpty()) {
+                tableResponse.setHigherAccountId(movementListResponse1.get(0).getHigherAccountId());
+                tableResponse.setDebit(movementListResponse1.get(0).getDebit());
+                tableResponse.setCredit(movementListResponse1.get(0).getCredit());
+                tableResponse.setBalance(movementListResponse1.get(0).getBalance());
+            } else {
+                tableResponse.setHigherAccountId(null); // o el valor por defecto que tenga sentido
+                tableResponse.setDebit(null);
+                tableResponse.setCredit(null);
+                tableResponse.setBalance(null);
+            }
+            tableResponse.setMovementListResponse(movementListResponse1);
+            responses.add(tableResponse);
+        });
+
         
         // responses.add();
 
@@ -225,7 +249,7 @@ public class MovementServiceImpl implements MovementService {
         //     })
         //     .toList();
 
-        return movementListResponse;
+        return responses;
     }
 
     @Override

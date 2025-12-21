@@ -17,11 +17,11 @@ public class MovementListResponse {
     // private List <MovementTableResponse> movementsList;
     private Long id;
     private Timestamp movementDate;
-    private HigherAccounts higherAccountId;
-    private Auxiliaries auxiliaryId;
     private CostCenters costCenterId;
     private String voucherAmount;
     private String movementDescription;
+    private Auxiliaries auxiliaryId;
+    private HigherAccounts higherAccountId;
     private Long debit;    
     private Long credit;
     private Long balance;
