@@ -1,33 +1,25 @@
 package com.v_ia_backend.kipa.service;
 
-import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.stereotype.Service;
-
-import com.v_ia_backend.kipa.dto.request.MovementFilterRequest;
-import com.v_ia_backend.kipa.dto.response.MovementListResponse;
-import com.v_ia_backend.kipa.dto.response.MovementTableResponse;
-import com.v_ia_backend.kipa.entity.Files;
-import com.v_ia_backend.kipa.entity.HigherAccounts;
-import com.v_ia_backend.kipa.entity.Movements;
-import com.v_ia_backend.kipa.entity.PaymentsAccountsRelation;
-import com.v_ia_backend.kipa.entity.PoContract;
-import com.v_ia_backend.kipa.exception.listexceptions.ConflictException;
-import com.v_ia_backend.kipa.interfase.MovementsInterfase;
-import com.v_ia_backend.kipa.repository.MovementsRepositoriy;
-import com.v_ia_backend.kipa.service.interfaces.MovementService;
-import java.nio.file.Path;
-
 import java.io.IOException;
 import java.io.InputStream;
-import java.math.BigDecimal;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+
+import com.v_ia_backend.kipa.dto.request.MovementFilterRequest;
+import com.v_ia_backend.kipa.dto.response.MovementListResponse;
+import com.v_ia_backend.kipa.dto.response.MovementTableResponse;
+import com.v_ia_backend.kipa.entity.HigherAccounts;
+import com.v_ia_backend.kipa.entity.Movements;
+import com.v_ia_backend.kipa.entity.PaymentsAccountsRelation;
+import com.v_ia_backend.kipa.interfase.MovementsInterfase;
+import com.v_ia_backend.kipa.repository.MovementsRepositoriy;
+import com.v_ia_backend.kipa.service.interfaces.MovementService;
 
 
 @Service
@@ -102,8 +94,9 @@ public class MovementServiceImpl implements MovementService {
 
         List<MovementListResponse> movementListResponse = new java.util.ArrayList<>();
         movements.forEach(movement -> {
+            // filtro que retorna un movimiento si encuentra uno repetido
             MovementListResponse movementListResponse1 = movementListResponse.stream().filter(p -> p.getMovementDescription().equals(movement.getMovementDescription())).findFirst().orElse(null);
-        
+            // si es nuevo, lo crea
             if (movementListResponse1 == null){
                 // List<MovementTableResponse> tableResponse = new java.util.ArrayList<>();
                 // MovementTableResponse tableResponse1 = new MovementTableResponse();
@@ -149,6 +142,7 @@ public class MovementServiceImpl implements MovementService {
                         movementListResponse1.setBalance(movementListResponse1.getDebit() + movementListResponse1.getCredit());
                         movementListResponse.add(movementListResponse1);
             }
+            // de lo contrario solo suma los valores
             else{
                 String raw = movement.getVoucherAmount();
                 java.math.BigDecimal amount = java.math.BigDecimal.ZERO;
@@ -190,64 +184,19 @@ public class MovementServiceImpl implements MovementService {
                 tableResponse.setDebit(movementListResponse1.get(0).getDebit());
                 tableResponse.setCredit(movementListResponse1.get(0).getCredit());
                 tableResponse.setBalance(movementListResponse1.get(0).getBalance());
-            } else {
-                tableResponse.setHigherAccountId(null); // o el valor por defecto que tenga sentido
-                tableResponse.setDebit(null);
-                tableResponse.setCredit(null);
-                tableResponse.setBalance(null);
-            }
-            tableResponse.setMovementListResponse(movementListResponse1);
-            responses.add(tableResponse);
+                tableResponse.setMovementListResponse(movementListResponse1);
+                responses.add(tableResponse);
+            } 
+            // else {
+            //     tableResponse.setHigherAccountId(null); // o el valor por defecto que tenga sentido
+            //     tableResponse.setDebit(null);
+            //     tableResponse.setCredit(null);
+            //     tableResponse.setBalance(null);
+            // }
+            // tableResponse.setMovementListResponse(movementListResponse1);
+            // responses.add(tableResponse);
         });
 
-        
-        // responses.add();
-
-        // Movements beforeMovement = new Movements();
-        // movements.forEach(movement -> {
-        //     if(beforeMovement != null && movement.getHigherAccountId() != null && beforeMovement.getHigherAccountId() != null &&
-        //        movement.getHigherAccountId().getId().equals(beforeMovement.getHigherAccountId().getId())) {
-        //         // Mismo higherAccountId que el anterior
-
-        //         System.out.println("  -> Mismo HigherAccount ID que el anterior: " + movement.getHigherAccountId().getId());
-        //     } else {
-        //         // Diferente higherAccountId
-        //         System.out.println("-> Nuevo HigherAccount ID encontrado: " + (movement.getHigherAccountId() != null ? movement.getHigherAccountId().getId() : "null"));
-        //     }
-            
-        //     System.out.println("Movimiento ID: " + movement.getId() + ", HigherAccount ID: " + (movement.getHigherAccountId() != null ? movement.getHigherAccountId().getId() : "null"));
-        // });
-        // // 2. Agrupar SOLO por higherAccountId (id)
-        // Map<Long, List<Movements>> gruposPorCuentaMayor = movements.stream()
-        //     .collect(Collectors.groupingBy(
-        //         m -> m.getHigherAccountId() != null ? m.getHigherAccountId().getId() : null
-        //     ));
-
-        // // 3. Por cada grupo, construir un MovementListResponse
-        // List<MovementListResponse> responses = gruposPorCuentaMayor.entrySet().stream()
-        //     .map(entry -> {
-        //         Long higherAccountId = entry.getKey();
-        //         List<Movements> lista = entry.getValue();
-
-        //         // Convertir cada Movements a MovementTableResponse
-        //         List<MovementTableResponse> tableResponses = lista.stream()
-        //             .map(MovementTableResponse::new)
-        //             .toList();
-
-        //         // Aquí puedes meter tu lógica real de débito / crédito.
-        //         Long debit = 0L;
-        //         Long credit = 0L;
-        //         Long balance = debit - credit;
-
-        //         MovementListResponse response = new MovementListResponse();
-        //         response.setMovementsList(tableResponses);
-        //         response.setDebit(debit);
-        //         response.setCredit(credit);
-        //         response.setBalance(balance);
-
-        //         return response;
-        //     })
-        //     .toList();
 
         return responses;
     }
