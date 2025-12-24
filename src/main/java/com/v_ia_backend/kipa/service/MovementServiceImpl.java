@@ -158,13 +158,12 @@ public class MovementServiceImpl implements MovementService {
                     }
                 }
                 if (movement.getNatureId() != null && movement.getNatureId().getId() == 1L){
-                    // beforeDebit[0] = beforeDebit[0].add(amount);
+
                     movementListResponse1.setDebit(movementListResponse1.getDebit() + amount.setScale(0, java.math.RoundingMode.HALF_UP).longValue());
                 } else{
-                    // beforeCredit[0] = beforeCredit[0].add(amount);
                     movementListResponse1.setCredit(movementListResponse1.getCredit() + amount.setScale(0, java.math.RoundingMode.HALF_UP).longValue());
                 }
-                movementListResponse1.setBalance(movementListResponse1.getDebit() + movementListResponse1.getCredit());
+                
             }
 
             // movementListResponse1.setBalance(BigDecimal.ZERO.longValue());
@@ -181,9 +180,26 @@ public class MovementServiceImpl implements MovementService {
             MovementTableResponse tableResponse = new MovementTableResponse();
             if (movementListResponse1 != null && !movementListResponse1.isEmpty()) {
                 tableResponse.setHigherAccountId(movementListResponse1.get(0).getHigherAccountId());
-                tableResponse.setDebit(movementListResponse1.get(0).getDebit());
-                tableResponse.setCredit(movementListResponse1.get(0).getCredit());
-                tableResponse.setBalance(movementListResponse1.get(0).getBalance());
+                long[] totals = {0L, 0L, 0L}; // [totalDebit, totalCredit, totalBalance]
+                movementListResponse1.forEach(movement -> {
+                    movement.setDebit(Math.abs(movement.getDebit()));
+                    movement.setCredit(Math.abs(movement.getCredit()));
+                    totals[0] += Math.abs(movement.getDebit());
+                    totals[1] += Math.abs(movement.getCredit());
+                    String cuentaUnicaStr = String.valueOf(movement.getHigherAccountId().getHigherAccountNumber());
+                    if (cuentaUnicaStr != null && (cuentaUnicaStr.startsWith("1") 
+                        || cuentaUnicaStr.startsWith("5") 
+                        || cuentaUnicaStr.startsWith("6"))) {
+                            movement.setBalance( movement.getDebit() - movement.getCredit());
+                    } else {
+                        movement.setBalance(- movement.getDebit() + movement.getCredit());
+                    }
+                    movement.setBalance(movement.getBalance() + totals[2]);
+                    totals[2] = movement.getBalance();
+                });
+                tableResponse.setDebit(totals[0]);
+                tableResponse.setCredit(totals[1]);
+                tableResponse.setBalance(movementListResponse1.get(movementListResponse1.size() - 1).getBalance());
                 tableResponse.setMovementListResponse(movementListResponse1);
                 responses.add(tableResponse);
             } 
