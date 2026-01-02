@@ -9,13 +9,15 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 @Data
 public class MovementTableResponse {
+    private Long id;
     private HigherAccounts higherAccountId;
-    private Long debit;    
+    private Long debit;
     private Long credit;
     private Long balance;
     private List<MovementListResponse> movementListResponse;
 
     public MovementTableResponse(Movements movements, Long debit, Long credit, Long balance, List<MovementListResponse> movementListResponse) {
+        this.id = movements.getId();
         this.higherAccountId = movements.getHigherAccountId();
         this.debit = debit;
         this.credit = credit;

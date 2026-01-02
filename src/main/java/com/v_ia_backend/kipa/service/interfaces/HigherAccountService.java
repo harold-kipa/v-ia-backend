@@ -10,4 +10,5 @@ import java.util.List;
 public interface HigherAccountService {
     HigherAccounts getHigherAccountById(Long id);
     List<HigherAccounts> getAllHigherAccounts();
+    public HigherAccounts getHigherAccountByHigherAccountsViewId(Long id);
 }

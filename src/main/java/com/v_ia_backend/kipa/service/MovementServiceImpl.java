@@ -13,7 +13,9 @@ import org.springframework.stereotype.Service;
 
 import com.v_ia_backend.kipa.dto.request.MovementFilterRequest;
 import com.v_ia_backend.kipa.dto.response.MovementListResponse;
+import com.v_ia_backend.kipa.dto.response.MovementResponse;
 import com.v_ia_backend.kipa.dto.response.MovementTableResponse;
+import com.v_ia_backend.kipa.entity.FilesOp;
 import com.v_ia_backend.kipa.entity.HigherAccounts;
 import com.v_ia_backend.kipa.entity.Movements;
 import com.v_ia_backend.kipa.entity.PaymentsAccountsRelation;
@@ -26,15 +28,24 @@ import com.v_ia_backend.kipa.service.interfaces.MovementService;
 public class MovementServiceImpl implements MovementService {
     private final MovementsRepositoriy MovementsRepositoriy;
     private final PaymentsAccountsRelationServiceImpl paymentsAccountsRelationServiceImpl;
+    private final HigherAccountServiceImpl higherAccountServiceImpl;
+    private final FilesOpServiceImpl filesOpServiceImpl;
     public record MovementGroupKey(Long higherAccountId, String movementDescription) {}
-    public MovementServiceImpl(MovementsRepositoriy MovementsRepositoriy, PaymentsAccountsRelationServiceImpl paymentsAccountsRelationServiceImpl) {
+    public MovementServiceImpl(MovementsRepositoriy MovementsRepositoriy, PaymentsAccountsRelationServiceImpl paymentsAccountsRelationServiceImpl, HigherAccountServiceImpl higherAccountServiceImpl, FilesOpServiceImpl filesOpServiceImpl) {
         this.MovementsRepositoriy = MovementsRepositoriy;
         this.paymentsAccountsRelationServiceImpl = paymentsAccountsRelationServiceImpl;
+        this.higherAccountServiceImpl = higherAccountServiceImpl;
+        this.filesOpServiceImpl = filesOpServiceImpl;
     }
 
     @Override
     public List<MovementTableResponse> getAllMovementsByFilter(MovementFilterRequest movementFilterRequest) {
         List<MovementsInterfase> movements = new ArrayList<>();
+
+        if(movementFilterRequest.getInitialAccountId() != null && movementFilterRequest.getFinalAccountId() != null){
+            movementFilterRequest.setInitialAccountId(higherAccountServiceImpl.getHigherAccountByHigherAccountsViewId(movementFilterRequest.getInitialAccountId()).getId());
+            movementFilterRequest.setFinalAccountId(higherAccountServiceImpl.getHigherAccountByHigherAccountsViewId(movementFilterRequest.getFinalAccountId()).getId());
+        }
         
         if (movementFilterRequest.getPoContractId() != null) {
 
@@ -186,7 +197,7 @@ public class MovementServiceImpl implements MovementService {
                     movement.setCredit(Math.abs(movement.getCredit()));
                     totals[0] += Math.abs(movement.getDebit());
                     totals[1] += Math.abs(movement.getCredit());
-                    String cuentaUnicaStr = String.valueOf(movement.getHigherAccountId().getHigherAccountNumber());
+                    String cuentaUnicaStr = String.valueOf(movement.getHigherAccountId().getAccountNumberHomologated());
                     if (cuentaUnicaStr != null && (cuentaUnicaStr.startsWith("1") 
                         || cuentaUnicaStr.startsWith("5") 
                         || cuentaUnicaStr.startsWith("6"))) {
@@ -197,6 +208,7 @@ public class MovementServiceImpl implements MovementService {
                     movement.setBalance(movement.getBalance() + totals[2]);
                     totals[2] = movement.getBalance();
                 });
+                tableResponse.setId(movementListResponse1.get(0).getId());
                 tableResponse.setDebit(totals[0]);
                 tableResponse.setCredit(totals[1]);
                 tableResponse.setBalance(movementListResponse1.get(movementListResponse1.size() - 1).getBalance());
@@ -218,25 +230,44 @@ public class MovementServiceImpl implements MovementService {
     }
 
     @Override
-    public Movements getMovementById(Long id) {
+    public MovementResponse getMovementById(Long id) {
         Movements movements = MovementsRepositoriy.findById(id).orElse(null);
-        if (movements.getPoContractId() == null || movements.getPoContractId().getFileId() == null) {
-            return movements;
+        MovementResponse response = new MovementResponse();
+        response.setMovements(movements);
+        if (movements.getPoContractId() == null || movements.getPoContractId().getFileId() == null ) {
+            List<FilesOp> filesOp = filesOpServiceImpl.getFilesOpByPaymentsAccountsRelationId(response.getMovements().getPaymentsAccountsRelationId().getId());
+            for (FilesOp file : filesOp) {
+                String url = file.getFileUrl();
+
+                if (url == null || url.trim().isEmpty()) {
+                    continue;
+                }
+
+                try (InputStream is = new URL(url.trim()).openStream()) {
+                    byte[] pdfBytes = is.readAllBytes();
+                    file.setFileUrl(Base64.getEncoder().encodeToString(pdfBytes)); // mejor: usar otro campo
+                } catch (IOException e) {
+                }
+            }
+            response.setFilesOp(filesOp);
+            return response;
         };
         try {
-            String url = movements.getPoContractId()
+            String url = response.getMovements().getPoContractId()
                           .getFileId()
                           .getFileUrl()
                           .trim();
             InputStream is = new URL(url).openStream();
             byte[] pdfBytes = is.readAllBytes();
 
-            movements.getPoContractId()
+            response.getMovements().getPoContractId()
                     .getFileId()
                     .setFileUrl(Base64.getEncoder().encodeToString(pdfBytes));
 
         } catch (IOException e) {
         }
-        return movements;
+
+        
+        return response;
     }
 }

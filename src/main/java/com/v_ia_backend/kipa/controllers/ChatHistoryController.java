@@ -1,0 +1,37 @@
+package com.v_ia_backend.kipa.controllers;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.v_ia_backend.kipa.dto.request.ChatHistoryRequest;
+import com.v_ia_backend.kipa.entity.ChatHistory;
+import com.v_ia_backend.kipa.service.ChatHistoryServiceImpl;
+
+@RestController
+@RequestMapping("/chat")
+public class ChatHistoryController {
+
+    @Autowired
+    private ChatHistoryServiceImpl chatHistoryService;
+
+    public ChatHistoryController(ChatHistoryServiceImpl chatHistoryService) {
+        this.chatHistoryService = chatHistoryService;
+    }
+
+    @PostMapping("/create")
+    public ResponseEntity<Object> createChatHistoryController(@RequestBody ChatHistoryRequest request) {
+        ChatHistory chatHistory = chatHistoryService.createChatHistory(request);
+        return ResponseEntity.ok(chatHistory);
+    }
+
+    @GetMapping("/get-all")
+    public ResponseEntity<Object> getAllChatHistoryController() {
+        return ResponseEntity.ok(chatHistoryService.getAllChatHistory());
+    }
+}
