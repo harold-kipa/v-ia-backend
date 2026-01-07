@@ -13,6 +13,7 @@ import com.v_ia_backend.kipa.interfase.MovementsInterfase;
 public interface MovementsRepositoriy extends JpaRepository<Movements, Long> {
     List<MovementsInterfase> findByMovementDateBetweenAndHigherAccountId_IdBetweenAndAuxiliaryId_Id(Timestamp fechaInicio, Timestamp fechaFin, Long initialAccount, Long finalAccount, Long auxiliaryId);
     List<MovementsInterfase> findByMovementDateBetweenAndHigherAccountId_IdBetween(Timestamp fechaInicio, Timestamp fechaFin, Long initialAccount, Long finalAccount);
+    List<MovementsInterfase> findByHigherAccountId_IdBetween(Long initialAccount, Long finalAccount);
     List<MovementsInterfase> findByAuxiliaryId_Id(Long auxiliaryId);
     List<MovementsInterfase> findByMovementDateBetween(Timestamp fechaInicio, Timestamp fechaFin);
     List<MovementsInterfase> findByPoContractId_Id(Long poContractId);

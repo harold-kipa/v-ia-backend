@@ -43,8 +43,8 @@ public class MovementServiceImpl implements MovementService {
         List<MovementsInterfase> movements = new ArrayList<>();
 
         if(movementFilterRequest.getInitialAccountId() != null && movementFilterRequest.getFinalAccountId() != null){
-            movementFilterRequest.setInitialAccountId(higherAccountServiceImpl.getHigherAccountByHigherAccountsViewId(movementFilterRequest.getInitialAccountId()).getId());
-            movementFilterRequest.setFinalAccountId(higherAccountServiceImpl.getHigherAccountByHigherAccountsViewId(movementFilterRequest.getFinalAccountId()).getId());
+            movementFilterRequest.setInitialAccountId(higherAccountServiceImpl.getHigherAccountByHigherAccountsViewId(movementFilterRequest.getInitialAccountId()).getId() + 1L);
+            movementFilterRequest.setFinalAccountId(higherAccountServiceImpl.getHigherAccountByHigherAccountsViewId(movementFilterRequest.getFinalAccountId()).getId() + 1L);
         }
         
         if (movementFilterRequest.getPoContractId() != null) {
@@ -77,6 +77,9 @@ public class MovementServiceImpl implements MovementService {
         }
         else if(movementFilterRequest.getAuxiliaryId() == null && movementFilterRequest.getInitialAccountId() == null && movementFilterRequest.getFinalAccountId() == null){
             movements = this.MovementsRepositoriy.findByMovementDateBetween(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate());
+        }
+        else if(movementFilterRequest.getAuxiliaryId() == null && movementFilterRequest.getStartDate() == null && movementFilterRequest.getEndDate() == null){
+            movements = this.MovementsRepositoriy.findByHigherAccountId_IdBetween(movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId());
         }
         else if(movementFilterRequest.getAuxiliaryId() == null){
             movements = this.MovementsRepositoriy.findByMovementDateBetweenAndHigherAccountId_IdBetween(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate(), movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId());
