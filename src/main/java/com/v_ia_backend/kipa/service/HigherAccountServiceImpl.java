@@ -39,4 +39,9 @@ public class HigherAccountServiceImpl implements HigherAccountService {
     public HigherAccounts getHigherAccountByHigherAccountsViewId(Long id) {
         return HigherAccountsRepositoriy.findByHigherAccountsViewId_Id(id).stream().findFirst().orElse(null);
     }
+
+    @Override
+    public List<HigherAccounts> getAllHigherAccountByHigherAccountsViewId(Long id) {
+        return HigherAccountsRepositoriy.findByHigherAccountsViewId_Id(id);
+    }
 }

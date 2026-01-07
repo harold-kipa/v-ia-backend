@@ -3,6 +3,7 @@ package com.v_ia_backend.kipa.service;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Comparator;
@@ -43,8 +44,13 @@ public class MovementServiceImpl implements MovementService {
         List<MovementsInterfase> movements = new ArrayList<>();
 
         if(movementFilterRequest.getInitialAccountId() != null && movementFilterRequest.getFinalAccountId() != null){
-            movementFilterRequest.setInitialAccountId(higherAccountServiceImpl.getHigherAccountByHigherAccountsViewId(movementFilterRequest.getInitialAccountId()).getId() + 1L);
-            movementFilterRequest.setFinalAccountId(higherAccountServiceImpl.getHigherAccountByHigherAccountsViewId(movementFilterRequest.getFinalAccountId()).getId() + 1L);
+            movementFilterRequest.setInitialAccountId(higherAccountServiceImpl.getHigherAccountByHigherAccountsViewId(movementFilterRequest.getInitialAccountId()).getId());
+            List<HigherAccounts> finalAccounts = higherAccountServiceImpl.getAllHigherAccountByHigherAccountsViewId(movementFilterRequest.getFinalAccountId());
+            if (finalAccounts.size() > 1){
+                movementFilterRequest.setFinalAccountId(finalAccounts.get(1).getId());
+            } else {
+                movementFilterRequest.setFinalAccountId(finalAccounts.get(0).getId());
+            }
         }
         
         if (movementFilterRequest.getPoContractId() != null) {
@@ -100,7 +106,7 @@ public class MovementServiceImpl implements MovementService {
             )
         );
         List<Long> cuentasUnicas = movements.stream()
-                .map(m -> m.getHigherAccountId().getId())   // <- Obtienes el Long
+                .map(m -> m.getHigherAccountId().getHigherAccountsViewId().getId())   // <- Obtienes el Long
                 .distinct()
                 .collect(Collectors.toList());
 
@@ -187,7 +193,7 @@ public class MovementServiceImpl implements MovementService {
         cuentasUnicas.forEach(cuentaUnica -> {
             List<MovementListResponse> movementListResponse1 = new ArrayList<>();
             movementListResponse.forEach(movement -> {
-                if(movement.getHigherAccountId().getId().equals(cuentaUnica)){
+                if(movement.getHigherAccountId().getHigherAccountsViewId().getId().equals(cuentaUnica)){
                     movementListResponse1.add(movement);
                 }
             });

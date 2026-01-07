@@ -11,4 +11,5 @@ public interface HigherAccountService {
     HigherAccounts getHigherAccountById(Long id);
     List<HigherAccounts> getAllHigherAccounts();
     public HigherAccounts getHigherAccountByHigherAccountsViewId(Long id);
+    public List<HigherAccounts> getAllHigherAccountByHigherAccountsViewId(Long id);
 }
