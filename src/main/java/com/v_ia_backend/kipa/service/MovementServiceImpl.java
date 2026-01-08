@@ -42,12 +42,14 @@ public class MovementServiceImpl implements MovementService {
     @Override
     public List<MovementTableResponse> getAllMovementsByFilter(MovementFilterRequest movementFilterRequest) {
         List<MovementsInterfase> movements = new ArrayList<>();
+        List<MovementsInterfase> movementsBefore = new ArrayList<>();
+        Timestamp initialDate = Timestamp.valueOf("2015-01-01 05:00:00");
 
         if(movementFilterRequest.getInitialAccountId() != null && movementFilterRequest.getFinalAccountId() != null){
             movementFilterRequest.setInitialAccountId(higherAccountServiceImpl.getHigherAccountByHigherAccountsViewId(movementFilterRequest.getInitialAccountId()).getId());
             List<HigherAccounts> finalAccounts = higherAccountServiceImpl.getAllHigherAccountByHigherAccountsViewId(movementFilterRequest.getFinalAccountId());
             if (finalAccounts.size() > 1){
-                movementFilterRequest.setFinalAccountId(finalAccounts.get(1).getId());
+                movementFilterRequest.setFinalAccountId(finalAccounts.get(finalAccounts.size() - 1).getId());
             } else {
                 movementFilterRequest.setFinalAccountId(finalAccounts.get(0).getId());
             }
@@ -79,21 +81,21 @@ public class MovementServiceImpl implements MovementService {
             movements = this.MovementsRepositoriy.findByPaymentsAccountsRelationId_Id(paymentsAccountsRelation.getId());
         }
         else if(movementFilterRequest.getAuxiliaryId() == null && movementFilterRequest.getInitialAccountId() == null && movementFilterRequest.getFinalAccountId() == null){
-            movements = this.MovementsRepositoriy.findByMovementDateBetween(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate());
-        }
-        else if(movementFilterRequest.getAuxiliaryId() == null && movementFilterRequest.getInitialAccountId() == null && movementFilterRequest.getFinalAccountId() == null){
+            movementsBefore = this.MovementsRepositoriy.findByMovementDateBetween(initialDate, movementFilterRequest.getStartDate());
             movements = this.MovementsRepositoriy.findByMovementDateBetween(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate());
         }
         else if(movementFilterRequest.getAuxiliaryId() == null && movementFilterRequest.getStartDate() == null && movementFilterRequest.getEndDate() == null){
             movements = this.MovementsRepositoriy.findByHigherAccountId_IdBetween(movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId());
         }
         else if(movementFilterRequest.getAuxiliaryId() == null){
+            movementsBefore = this.MovementsRepositoriy.findByMovementDateBetweenAndHigherAccountId_IdBetween(initialDate, movementFilterRequest.getStartDate(), movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId());
             movements = this.MovementsRepositoriy.findByMovementDateBetweenAndHigherAccountId_IdBetween(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate(), movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId());
         }
         else if(movementFilterRequest.getInitialAccountId() == null && movementFilterRequest.getFinalAccountId() == null){
             movements = this.MovementsRepositoriy.findByAuxiliaryId_Id(movementFilterRequest.getAuxiliaryId());
         }
         else{
+            movementsBefore = this.MovementsRepositoriy.findByMovementDateBetweenAndHigherAccountId_IdBetweenAndAuxiliaryId_Id(initialDate, movementFilterRequest.getStartDate(), movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId(), movementFilterRequest.getAuxiliaryId());
             movements = this.MovementsRepositoriy.findByMovementDateBetweenAndHigherAccountId_IdBetweenAndAuxiliaryId_Id(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate(), movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId(), movementFilterRequest.getAuxiliaryId());
         }
         movements.sort(
@@ -112,20 +114,91 @@ public class MovementServiceImpl implements MovementService {
 
         System.out.println(cuentasUnicas);
 
+        List<MovementTableResponse> responses = new ArrayList<>();
+        
+        if (movementsBefore.isEmpty()==false){
+            
+            List<Long> cuentasUnicasBefore = movementsBefore.stream()
+                    .map(m -> m.getHigherAccountId().getHigherAccountsViewId().getId())   // <- Obtienes el Long
+                    .distinct()
+                    .collect(Collectors.toList());
+    
+            System.out.println(cuentasUnicas);
+            List<MovementListResponse> movementBeforeListResponse = sortMovements(movementsBefore);
+            List<MovementTableResponse> responsesBefore = calculationsMovements(movementBeforeListResponse, cuentasUnicasBefore);
+            List<MovementListResponse> movementListResponse = sortMovements(movements);
+            responses = calculationsBeforeMovements(movementListResponse, cuentasUnicasBefore, responsesBefore);
+        }
+        else{
+            List<MovementListResponse> movementListResponse = sortMovements(movements);
+            responses = calculationsMovements(movementListResponse, cuentasUnicas);
+        }
+        
+
+        // ajustar saldos iniciales
+
+        return responses;
+    }
+
+    @Override
+    public MovementResponse getMovementById(Long id) {
+        Movements movements = MovementsRepositoriy.findById(id).orElse(null);
+        MovementResponse response = new MovementResponse();
+        response.setMovements(movements);
+        if (movements.getPoContractId() == null || movements.getPoContractId().getFileId() == null ) {
+            List<FilesOp> filesOp = filesOpServiceImpl.getFilesOpByPaymentsAccountsRelationId(response.getMovements().getPaymentsAccountsRelationId().getId());
+            for (FilesOp file : filesOp) {
+                String url = file.getFileUrl();
+
+                if (url == null || url.trim().isEmpty()) {
+                    continue;
+                }
+
+                try (InputStream is = new URL(url.trim()).openStream()) {
+                    byte[] pdfBytes = is.readAllBytes();
+                    file.setFileUrl(Base64.getEncoder().encodeToString(pdfBytes)); // mejor: usar otro campo
+                } catch (IOException e) {
+                }
+            }
+            response.setFilesOp(filesOp);
+            return response;
+        };
+        try {
+            String url = response.getMovements().getPoContractId()
+                          .getFileId()
+                          .getFileUrl()
+                          .trim();
+            InputStream is = new URL(url).openStream();
+            byte[] pdfBytes = is.readAllBytes();
+
+            response.getMovements().getPoContractId()
+                    .getFileId()
+                    .setFileUrl(Base64.getEncoder().encodeToString(pdfBytes));
+
+        } catch (IOException e) {
+        }
+
+        
+        return response;
+    }
+    public List<MovementListResponse> sortMovements(List<MovementsInterfase> movements){
         List<MovementListResponse> movementListResponse = new java.util.ArrayList<>();
         movements.forEach(movement -> {
             // filtro que retorna un movimiento si encuentra uno repetido
             MovementListResponse movementListResponse1 = movementListResponse.stream().filter(p -> p.getMovementDescription().equals(movement.getMovementDescription())).findFirst().orElse(null);
             // si es nuevo, lo crea
             if (movementListResponse1 == null){
+                // if (movement.getMovementDescription().equals("CANCELA CUENTAS POR CIERRE ANUAL")){ 
+                //     return;
+                // }
                 // List<MovementTableResponse> tableResponse = new java.util.ArrayList<>();
                 // MovementTableResponse tableResponse1 = new MovementTableResponse();
                 movementListResponse1 = new MovementListResponse();
+                movementListResponse1.setMovementDescription(movement.getMovementDescription());
                 movementListResponse1.setHigherAccountId(movement.getHigherAccountId());
                 movementListResponse1.setAuxiliaryId(movement.getAuxiliaryId());
                 movementListResponse1.setMovementDate(movement.getMovementDate());
                 movementListResponse1.setCostCenterId(movement.getCostCenterId());
-                movementListResponse1.setMovementDescription(movement.getMovementDescription());
                 movementListResponse1.setId(movement.getId());
                 // tableResponse.add(tableResponse1);
                 // Parse voucherAmount which may contain commas and decimals, e.g. "-163,072,118.23"
@@ -188,7 +261,10 @@ public class MovementServiceImpl implements MovementService {
 
             // movementListResponse1.setBalance(BigDecimal.ZERO.longValue());
         });
+        return movementListResponse;
+    }
 
+    public List<MovementTableResponse> calculationsMovements(List<MovementListResponse> movementListResponse, List<Long> cuentasUnicas){
         List<MovementTableResponse> responses = new ArrayList<>();
         cuentasUnicas.forEach(cuentaUnica -> {
             List<MovementListResponse> movementListResponse1 = new ArrayList<>();
@@ -224,59 +300,67 @@ public class MovementServiceImpl implements MovementService {
                 tableResponse.setMovementListResponse(movementListResponse1);
                 responses.add(tableResponse);
             } 
-            // else {
-            //     tableResponse.setHigherAccountId(null); // o el valor por defecto que tenga sentido
-            //     tableResponse.setDebit(null);
-            //     tableResponse.setCredit(null);
-            //     tableResponse.setBalance(null);
-            // }
-            // tableResponse.setMovementListResponse(movementListResponse1);
-            // responses.add(tableResponse);
         });
 
 
         return responses;
     }
 
-    @Override
-    public MovementResponse getMovementById(Long id) {
-        Movements movements = MovementsRepositoriy.findById(id).orElse(null);
-        MovementResponse response = new MovementResponse();
-        response.setMovements(movements);
-        if (movements.getPoContractId() == null || movements.getPoContractId().getFileId() == null ) {
-            List<FilesOp> filesOp = filesOpServiceImpl.getFilesOpByPaymentsAccountsRelationId(response.getMovements().getPaymentsAccountsRelationId().getId());
-            for (FilesOp file : filesOp) {
-                String url = file.getFileUrl();
 
-                if (url == null || url.trim().isEmpty()) {
-                    continue;
+    public List<MovementTableResponse> calculationsBeforeMovements(List<MovementListResponse> movementListResponse, List<Long> cuentasUnicas, List<MovementTableResponse> movementListResponseBefore){
+        List<MovementTableResponse> responses = new ArrayList<>();
+        cuentasUnicas.forEach(cuentaUnica -> {
+            List<MovementListResponse> movementListResponse1 = new ArrayList<>();
+            // saldo inicial
+            movementListResponseBefore.forEach(movement -> {
+                if(movement.getHigherAccountId().getHigherAccountsViewId().getId().equals(cuentaUnica)){
+                    MovementListResponse tableResponseInit = new MovementListResponse();
+                    tableResponseInit.setId(0L);
+                    tableResponseInit.setHigherAccountId(movement.getHigherAccountId());
+                    tableResponseInit.setMovementDescription("SALDO INICIAL");
+                    tableResponseInit.setDebit(movement.getDebit());
+                    tableResponseInit.setCredit(movement.getCredit());
+                    tableResponseInit.setBalance(movement.getBalance());
+                    movementListResponse1.add(tableResponseInit);
                 }
-
-                try (InputStream is = new URL(url.trim()).openStream()) {
-                    byte[] pdfBytes = is.readAllBytes();
-                    file.setFileUrl(Base64.getEncoder().encodeToString(pdfBytes)); // mejor: usar otro campo
-                } catch (IOException e) {
+            });
+            movementListResponse.forEach(movement -> {
+                if(movement.getHigherAccountId().getHigherAccountsViewId().getId().equals(cuentaUnica)){
+                    movementListResponse1.add(movement);
                 }
-            }
-            response.setFilesOp(filesOp);
-            return response;
-        };
-        try {
-            String url = response.getMovements().getPoContractId()
-                          .getFileId()
-                          .getFileUrl()
-                          .trim();
-            InputStream is = new URL(url).openStream();
-            byte[] pdfBytes = is.readAllBytes();
+            });
+            MovementTableResponse tableResponse = new MovementTableResponse();
+            if (movementListResponse1 != null && !movementListResponse1.isEmpty()) {
 
-            response.getMovements().getPoContractId()
-                    .getFileId()
-                    .setFileUrl(Base64.getEncoder().encodeToString(pdfBytes));
+                tableResponse.setHigherAccountId(movementListResponse1.get(0).getHigherAccountId());
+                long[] totals = {0L, 0L, 0L}; // [totalDebit, totalCredit, totalBalance]
+                movementListResponse1.forEach(movement -> {
+                    movement.setDebit(Math.abs(movement.getDebit()));
+                    movement.setCredit(Math.abs(movement.getCredit()));
+                    totals[0] += Math.abs(movement.getDebit());
+                    totals[1] += Math.abs(movement.getCredit());
+                    String cuentaUnicaStr = String.valueOf(movement.getHigherAccountId().getAccountNumberHomologated());
+                    if (cuentaUnicaStr != null && (cuentaUnicaStr.startsWith("1") 
+                        || cuentaUnicaStr.startsWith("5") 
+                        || cuentaUnicaStr.startsWith("6"))) {
+                            movement.setBalance( movement.getDebit() - movement.getCredit());
+                    } else {
+                        movement.setBalance(- movement.getDebit() + movement.getCredit());
+                    }
+                    movement.setBalance(movement.getBalance() + totals[2]);
+                    totals[2] = movement.getBalance();
+                });
+                tableResponse.setId(movementListResponse1.get(0).getId());
+                tableResponse.setDebit(totals[0]);
+                tableResponse.setCredit(totals[1]);
+                tableResponse.setBalance(movementListResponse1.get(movementListResponse1.size() - 1).getBalance());
+                tableResponse.setMovementListResponse(movementListResponse1);
+                responses.add(tableResponse);
+            } 
+        });
 
-        } catch (IOException e) {
-        }
 
-        
-        return response;
+        return responses;
     }
+
 }
