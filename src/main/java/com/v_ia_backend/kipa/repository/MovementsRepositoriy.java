@@ -17,6 +17,7 @@ public interface MovementsRepositoriy extends JpaRepository<Movements, Long> {
     List<MovementsInterfase> findByAuxiliaryId_Id(Long auxiliaryId);
     List<MovementsInterfase> findByMovementDateBetween(Timestamp fechaInicio, Timestamp fechaFin);
     List<MovementsInterfase> findByPoContractId_Id(Long poContractId);
+    List<MovementsInterfase> findByMovementDateBetweenAndHigherAccountId_IdBetweenAndPaymentsAccountsRelationId_Id(Timestamp fechaInicio, Timestamp fechaFin, Long initialAccount, Long finalAccount, Long poContractId);
     List<MovementsInterfase> findByPaymentsAccountsRelationId_Id(Long paymentsAccountsRelationId);
 
 

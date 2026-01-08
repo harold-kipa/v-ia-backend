@@ -54,8 +54,24 @@ public class MovementServiceImpl implements MovementService {
                 movementFilterRequest.setFinalAccountId(finalAccounts.get(0).getId());
             }
         }
+
+        if(movementFilterRequest.getPaymentsAccountsRelationId() != null && movementFilterRequest.getInitialAccountId() != null && movementFilterRequest.getFinalAccountId() != null && movementFilterRequest.getStartDate() != null && movementFilterRequest.getEndDate() != null){
+            List<PaymentsAccountsRelation> relations =
+                paymentsAccountsRelationServiceImpl
+                    .getPaymentsAccountsRelationByConsecutiveNumber(
+                        movementFilterRequest.getPaymentsAccountsRelationId().toString()
+                    );
+
+            for (PaymentsAccountsRelation par : relations) {
+                movements.addAll(
+                    MovementsRepositoriy
+                        .findByMovementDateBetweenAndHigherAccountId_IdBetweenAndPaymentsAccountsRelationId_Id(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate(), movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId(), par.getId())
+                );
+            }
+            // movements = MovementsRepositoriy.findByMovementDateBetweenAndHigherAccountId_IdBetweenAndPaymentsAccountsRelationId_Id(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate(), movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId(), movementFilterRequest.getPoContractId());
+        }
         
-        if (movementFilterRequest.getPoContractId() != null) {
+        else if (movementFilterRequest.getPoContractId() != null) {
 
             movements = MovementsRepositoriy
                 .findByPoContractId_Id(movementFilterRequest.getPoContractId());
@@ -185,7 +201,7 @@ public class MovementServiceImpl implements MovementService {
         List<MovementListResponse> movementListResponse = new java.util.ArrayList<>();
         movements.forEach(movement -> {
             // filtro que retorna un movimiento si encuentra uno repetido
-            MovementListResponse movementListResponse1 = movementListResponse.stream().filter(p -> p.getMovementDescription().equals(movement.getMovementDescription())).findFirst().orElse(null);
+            MovementListResponse movementListResponse1 = movementListResponse.stream().filter(p -> p.getMovementDescription().equals(movement.getMovementDescription()) && p.getHigherAccountId().getId().equals(movement.getHigherAccountId().getId())).findFirst().orElse(null);
             // si es nuevo, lo crea
             if (movementListResponse1 == null){
                 // if (movement.getMovementDescription().equals("CANCELA CUENTAS POR CIERRE ANUAL")){ 
@@ -350,7 +366,11 @@ public class MovementServiceImpl implements MovementService {
                     movement.setBalance(movement.getBalance() + totals[2]);
                     totals[2] = movement.getBalance();
                 });
-                tableResponse.setId(movementListResponse1.get(0).getId());
+                if(movementListResponse1.size()>1){
+                    tableResponse.setId(movementListResponse1.get(1).getId());
+                } else {
+                    tableResponse.setId(movementListResponse1.get(0).getId());
+                }
                 tableResponse.setDebit(totals[0]);
                 tableResponse.setCredit(totals[1]);
                 tableResponse.setBalance(movementListResponse1.get(movementListResponse1.size() - 1).getBalance());
