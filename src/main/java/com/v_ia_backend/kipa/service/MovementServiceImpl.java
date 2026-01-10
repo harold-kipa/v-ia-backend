@@ -6,6 +6,7 @@ import java.net.URL;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Calendar;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -44,6 +45,21 @@ public class MovementServiceImpl implements MovementService {
         List<MovementsInterfase> movements = new ArrayList<>();
         List<MovementsInterfase> movementsBefore = new ArrayList<>();
         Timestamp initialDate = Timestamp.valueOf("2015-01-01 05:00:00");
+        if(movementFilterRequest.getStartDate() != null || movementFilterRequest.getEndDate() != null){
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTimeInMillis(movementFilterRequest.getStartDate().getTime());
+            
+            // Establecer el primer día del año
+            calendar.set(Calendar.MONTH, Calendar.JANUARY);
+            calendar.set(Calendar.DAY_OF_MONTH, 1);
+            calendar.set(Calendar.HOUR_OF_DAY, 0);
+            calendar.set(Calendar.MINUTE, 0);
+            calendar.set(Calendar.SECOND, 0);
+            calendar.set(Calendar.MILLISECOND, 0);
+            
+            initialDate = new Timestamp(calendar.getTimeInMillis());
+        }
+        // Timestamp initialDate = Timestamp.valueOf("2015-01-01 05:00:00");
 
         if(movementFilterRequest.getInitialAccountId() != null && movementFilterRequest.getFinalAccountId() != null){
             movementFilterRequest.setInitialAccountId(higherAccountServiceImpl.getHigherAccountByHigherAccountsViewId(movementFilterRequest.getInitialAccountId()).getId());
@@ -103,11 +119,11 @@ public class MovementServiceImpl implements MovementService {
         else if(movementFilterRequest.getAuxiliaryId() == null && movementFilterRequest.getStartDate() == null && movementFilterRequest.getEndDate() == null){
             movements = this.MovementsRepositoriy.findByHigherAccountId_IdBetween(movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId());
         }
-        else if(movementFilterRequest.getAuxiliaryId() == null){
+        else if(movementFilterRequest.getAuxiliaryId() == null ){
             movementsBefore = this.MovementsRepositoriy.findByMovementDateBetweenAndHigherAccountId_IdBetween(initialDate, movementFilterRequest.getStartDate(), movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId());
             movements = this.MovementsRepositoriy.findByMovementDateBetweenAndHigherAccountId_IdBetween(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate(), movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId());
         }
-        else if(movementFilterRequest.getInitialAccountId() == null && movementFilterRequest.getFinalAccountId() == null){
+        else if(movementFilterRequest.getInitialAccountId() == null && movementFilterRequest.getFinalAccountId() == null && movementFilterRequest.getStartDate() == null && movementFilterRequest.getEndDate() == null){
             movements = this.MovementsRepositoriy.findByAuxiliaryId_Id(movementFilterRequest.getAuxiliaryId());
         }
         else{
@@ -177,21 +193,21 @@ public class MovementServiceImpl implements MovementService {
                 }
             }
             response.setFilesOp(filesOp);
-            return response;
+            // return response;
         };
         try {
-            String url = response.getMovements().getPoContractId()
-                          .getFileId()
-                          .getFileUrl()
-                          .trim();
-            InputStream is = new URL(url).openStream();
-            byte[] pdfBytes = is.readAllBytes();
-
-            response.getMovements().getPoContractId()
-                    .getFileId()
-                    .setFileUrl(Base64.getEncoder().encodeToString(pdfBytes));
+            for (int i = 0; i < response.getFilesOp().size(); i++) {
+                String url = response.getFilesOp().get(i).getFileUrl()
+                              .trim();
+                InputStream is = new URL(url).openStream();
+                byte[] pdfBytes = is.readAllBytes();
+    
+                response.getFilesOp().get(i)
+                        .setFileUrl(Base64.getEncoder().encodeToString(pdfBytes));
+            }
 
         } catch (IOException e) {
+            System.out.println("Error al obtener el archivo PDF: " + e.getMessage());
         }
 
         
@@ -204,9 +220,12 @@ public class MovementServiceImpl implements MovementService {
             MovementListResponse movementListResponse1 = movementListResponse.stream().filter(p -> p.getMovementDescription().equals(movement.getMovementDescription()) && p.getHigherAccountId().getId().equals(movement.getHigherAccountId().getId())).findFirst().orElse(null);
             // si es nuevo, lo crea
             if (movementListResponse1 == null){
-                // if (movement.getMovementDescription().equals("CANCELA CUENTAS POR CIERRE ANUAL")){ 
-                //     return;
-                // }
+                if (movement.getMovementDescription().equals("CANCELA CUENTAS POR CIERRE ANUAL")){ 
+                    return;
+                }
+                if (movement.getMovementDescription().equals("SALDOS INICIALES")){ 
+                    return;
+                }
                 // List<MovementTableResponse> tableResponse = new java.util.ArrayList<>();
                 // MovementTableResponse tableResponse1 = new MovementTableResponse();
                 movementListResponse1 = new MovementListResponse();
