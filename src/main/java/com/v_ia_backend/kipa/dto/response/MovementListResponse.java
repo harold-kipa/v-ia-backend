@@ -7,6 +7,7 @@ import com.v_ia_backend.kipa.entity.Movements;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.List;
 
@@ -22,12 +23,12 @@ public class MovementListResponse {
     private String movementDescription;
     private Auxiliaries auxiliaryId;
     private HigherAccounts higherAccountId;
-    private Long debit;    
-    private Long credit;
-    private Long balance;
+    private BigDecimal debit;    
+    private BigDecimal credit;
+    private BigDecimal balance;
 
 
-    public MovementListResponse(Movements movements, Long debit, Long credit, Long balance) {
+    public MovementListResponse(Movements movements, BigDecimal debit, BigDecimal credit, BigDecimal balance) {
         this.id = movements.getId();
         this.movementDate = movements.getMovementDate();
         this.higherAccountId = movements.getHigherAccountId();

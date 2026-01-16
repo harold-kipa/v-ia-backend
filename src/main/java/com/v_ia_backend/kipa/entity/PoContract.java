@@ -11,7 +11,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @Entity
 @Getter
 @Setter
-@Table(name = "tbl_po_contract")
+@Table(name = "tbl_po_contract_final")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class PoContract implements Serializable {
     @Id

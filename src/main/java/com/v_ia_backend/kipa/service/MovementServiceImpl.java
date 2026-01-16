@@ -2,6 +2,7 @@ package com.v_ia_backend.kipa.service;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -45,6 +46,7 @@ public class MovementServiceImpl implements MovementService {
         List<MovementsInterfase> movements = new ArrayList<>();
         List<MovementsInterfase> movementsBefore = new ArrayList<>();
         Timestamp initialDate = Timestamp.valueOf("2015-01-01 05:00:00");
+        // Long higherAcountChange = 3643L;
         if(movementFilterRequest.getStartDate() != null || movementFilterRequest.getEndDate() != null){
             Calendar calendar = Calendar.getInstance();
             calendar.setTimeInMillis(movementFilterRequest.getStartDate().getTime());
@@ -70,6 +72,10 @@ public class MovementServiceImpl implements MovementService {
                 movementFilterRequest.setFinalAccountId(finalAccounts.get(0).getId());
             }
         }
+
+        // if(movementFilterRequest.getInitialAccountId() > higherAcountChange && movementFilterRequest.getFinalAccountId() < higherAcountChange){
+            
+        // }
 
         if(movementFilterRequest.getPaymentsAccountsRelationId() != null && movementFilterRequest.getInitialAccountId() != null && movementFilterRequest.getFinalAccountId() != null && movementFilterRequest.getStartDate() != null && movementFilterRequest.getEndDate() != null){
             List<PaymentsAccountsRelation> relations =
@@ -194,21 +200,22 @@ public class MovementServiceImpl implements MovementService {
             }
             response.setFilesOp(filesOp);
             // return response;
-        };
-        try {
-            for (int i = 0; i < response.getFilesOp().size(); i++) {
-                String url = response.getFilesOp().get(i).getFileUrl()
-                              .trim();
-                InputStream is = new URL(url).openStream();
-                byte[] pdfBytes = is.readAllBytes();
+            try {
+                for (int i = 0; i < response.getFilesOp().size(); i++) {
+                    String url = response.getFilesOp().get(i).getFileUrl()
+                                  .trim()
+                                  .replace(" ", "%20");
+                    InputStream is = new URL(url).openStream();
+                    byte[] pdfBytes = is.readAllBytes();
+        
+                    response.getFilesOp().get(i)
+                            .setFileUrl(Base64.getEncoder().encodeToString(pdfBytes));
+                }
     
-                response.getFilesOp().get(i)
-                        .setFileUrl(Base64.getEncoder().encodeToString(pdfBytes));
+            } catch (IOException e) {
+                System.out.println("Error al obtener el archivo PDF: " + e.getMessage());
             }
-
-        } catch (IOException e) {
-            System.out.println("Error al obtener el archivo PDF: " + e.getMessage());
-        }
+        };
 
         
         return response;
@@ -217,7 +224,7 @@ public class MovementServiceImpl implements MovementService {
         List<MovementListResponse> movementListResponse = new java.util.ArrayList<>();
         movements.forEach(movement -> {
             // filtro que retorna un movimiento si encuentra uno repetido
-            MovementListResponse movementListResponse1 = movementListResponse.stream().filter(p -> p.getMovementDescription().equals(movement.getMovementDescription()) && p.getHigherAccountId().getId().equals(movement.getHigherAccountId().getId())).findFirst().orElse(null);
+            MovementListResponse movementListResponse1 = movementListResponse.stream().filter(p -> p.getMovementDescription().equals(movement.getMovementDescription()) && p.getHigherAccountId().getId().equals(movement.getHigherAccountId().getId()) && p.getAuxiliaryId().getId().equals(movement.getAuxiliaryId().getId())).findFirst().orElse(null);
             // si es nuevo, lo crea
             if (movementListResponse1 == null){
                 if (movement.getMovementDescription().equals("CANCELA CUENTAS POR CIERRE ANUAL")){ 
@@ -235,40 +242,30 @@ public class MovementServiceImpl implements MovementService {
                 movementListResponse1.setMovementDate(movement.getMovementDate());
                 movementListResponse1.setCostCenterId(movement.getCostCenterId());
                 movementListResponse1.setId(movement.getId());
-                // tableResponse.add(tableResponse1);
-                // Parse voucherAmount which may contain commas and decimals, e.g. "-163,072,118.23"
-                // beforeCredit[0] += movement.getVoucherNumber();
-                
-                // cuentasUnicas.forEach(cuentaUnica -> {
-                    // if(movement.getHigherAccountId().getId().equals(cuentaUnica)){
-                        // }
-                        // });
-                        // movementListResponse1.setMovementsList(tableResponse);
-                        // MovementListResponse expects Longs; convert by rounding to nearest whole unit
-                        String raw = movement.getVoucherAmount();
-                        java.math.BigDecimal amount = java.math.BigDecimal.ZERO;
-                        if(raw != null && !raw.isBlank()){
-                            // Normalize: remove grouping separators and trim
-                            String cleaned = raw.replaceAll("[,\\s]", "");
-                            try{
-                                amount = new java.math.BigDecimal(cleaned);
-                            } catch (NumberFormatException ex){
-                                // If parsing fails, fallback to zero to avoid crashing; log the problem
-                                System.err.println("Failed parsing voucherAmount='" + raw + "' for movement id=" + movement.getId() + ": " + ex.getMessage());
-                                amount = java.math.BigDecimal.ZERO;
-                            }
-                        }
-                        if (movement.getNatureId() != null && movement.getNatureId().getId() == 1L){
-                            // beforeDebit[0] = beforeDebit[0].add(amount);
-                            movementListResponse1.setCredit(0L);
-                            movementListResponse1.setDebit(amount.setScale(0, java.math.RoundingMode.HALF_UP).longValue());
-                        } else{
-                            // beforeCredit[0] = beforeCredit[0].add(amount);
-                            movementListResponse1.setCredit(amount.setScale(0, java.math.RoundingMode.HALF_UP).longValue());
-                            movementListResponse1.setDebit(0L);
-                        }
-                        movementListResponse1.setBalance(movementListResponse1.getDebit() + movementListResponse1.getCredit());
-                        movementListResponse.add(movementListResponse1);
+                String raw = movement.getVoucherAmount();
+                java.math.BigDecimal amount = java.math.BigDecimal.ZERO;
+                if(raw != null && !raw.isBlank()){
+                    // Normalize: remove grouping separators and trim
+                    String cleaned = raw.replaceAll("[,\\s]", "");
+                    try{
+                        amount = new java.math.BigDecimal(cleaned);
+                    } catch (NumberFormatException ex){
+                        // If parsing fails, fallback to zero to avoid crashing; log the problem
+                        System.err.println("Failed parsing voucherAmount='" + raw + "' for movement id=" + movement.getId() + ": " + ex.getMessage());
+                        amount = java.math.BigDecimal.ZERO;
+                    }
+                }
+                if (movement.getNatureId() != null && movement.getNatureId().getId() == 1L){
+                    // beforeDebit[0] = beforeDebit[0].add(amount);
+                    movementListResponse1.setCredit(java.math.BigDecimal.ZERO);
+                    movementListResponse1.setDebit(amount.setScale(0, java.math.RoundingMode.HALF_UP));
+                } else{
+                    // beforeCredit[0] = beforeCredit[0].add(amount);
+                    movementListResponse1.setCredit(amount.setScale(0, java.math.RoundingMode.HALF_UP));
+                    movementListResponse1.setDebit(java.math.BigDecimal.ZERO);
+                }
+                movementListResponse1.setBalance(movementListResponse1.getDebit().add(movementListResponse1.getCredit()));
+                movementListResponse.add(movementListResponse1);
             }
             // de lo contrario solo suma los valores
             else{
@@ -287,9 +284,9 @@ public class MovementServiceImpl implements MovementService {
                 }
                 if (movement.getNatureId() != null && movement.getNatureId().getId() == 1L){
 
-                    movementListResponse1.setDebit(movementListResponse1.getDebit() + amount.setScale(0, java.math.RoundingMode.HALF_UP).longValue());
+                    movementListResponse1.setDebit(movementListResponse1.getDebit().add(amount));
                 } else{
-                    movementListResponse1.setCredit(movementListResponse1.getCredit() + amount.setScale(0, java.math.RoundingMode.HALF_UP).longValue());
+                    movementListResponse1.setCredit(movementListResponse1.getCredit().add(amount));
                 }
                 
             }
@@ -311,21 +308,21 @@ public class MovementServiceImpl implements MovementService {
             MovementTableResponse tableResponse = new MovementTableResponse();
             if (movementListResponse1 != null && !movementListResponse1.isEmpty()) {
                 tableResponse.setHigherAccountId(movementListResponse1.get(0).getHigherAccountId());
-                long[] totals = {0L, 0L, 0L}; // [totalDebit, totalCredit, totalBalance]
+                BigDecimal[] totals = {BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO}; // [totalDebit, totalCredit, totalBalance]
                 movementListResponse1.forEach(movement -> {
-                    movement.setDebit(Math.abs(movement.getDebit()));
-                    movement.setCredit(Math.abs(movement.getCredit()));
-                    totals[0] += Math.abs(movement.getDebit());
-                    totals[1] += Math.abs(movement.getCredit());
+                    movement.setDebit(movement.getDebit().abs());
+                    movement.setCredit(movement.getCredit().abs());
+                    totals[0] = totals[0].add(movement.getDebit());
+                    totals[1] = totals[1].add(movement.getCredit());
                     String cuentaUnicaStr = String.valueOf(movement.getHigherAccountId().getAccountNumberHomologated());
                     if (cuentaUnicaStr != null && (cuentaUnicaStr.startsWith("1") 
                         || cuentaUnicaStr.startsWith("5") 
                         || cuentaUnicaStr.startsWith("6"))) {
-                            movement.setBalance( movement.getDebit() - movement.getCredit());
+                            movement.setBalance(movement.getDebit().subtract(movement.getCredit()));
                     } else {
-                        movement.setBalance(- movement.getDebit() + movement.getCredit());
+                        movement.setBalance(movement.getCredit().subtract(movement.getDebit()));
                     }
-                    movement.setBalance(movement.getBalance() + totals[2]);
+                    movement.setBalance(movement.getBalance().add(totals[2]));
                     totals[2] = movement.getBalance();
                 });
                 tableResponse.setId(movementListResponse1.get(0).getId());
@@ -368,21 +365,21 @@ public class MovementServiceImpl implements MovementService {
             if (movementListResponse1 != null && !movementListResponse1.isEmpty()) {
 
                 tableResponse.setHigherAccountId(movementListResponse1.get(0).getHigherAccountId());
-                long[] totals = {0L, 0L, 0L}; // [totalDebit, totalCredit, totalBalance]
+                BigDecimal[] totals = {BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO}; // [totalDebit, totalCredit, totalBalance]
                 movementListResponse1.forEach(movement -> {
-                    movement.setDebit(Math.abs(movement.getDebit()));
-                    movement.setCredit(Math.abs(movement.getCredit()));
-                    totals[0] += Math.abs(movement.getDebit());
-                    totals[1] += Math.abs(movement.getCredit());
+                    movement.setDebit(movement.getDebit().abs());
+                    movement.setCredit(movement.getCredit().abs());
+                    totals[0] = totals[0].add(movement.getDebit());
+                    totals[1] = totals[1].add(movement.getCredit());
                     String cuentaUnicaStr = String.valueOf(movement.getHigherAccountId().getAccountNumberHomologated());
                     if (cuentaUnicaStr != null && (cuentaUnicaStr.startsWith("1") 
                         || cuentaUnicaStr.startsWith("5") 
                         || cuentaUnicaStr.startsWith("6"))) {
-                            movement.setBalance( movement.getDebit() - movement.getCredit());
+                            movement.setBalance(movement.getDebit().subtract(movement.getCredit()));
                     } else {
-                        movement.setBalance(- movement.getDebit() + movement.getCredit());
+                        movement.setBalance(movement.getCredit().subtract(movement.getDebit()));
                     }
-                    movement.setBalance(movement.getBalance() + totals[2]);
+                    movement.setBalance(movement.getBalance().add(totals[2]));
                     totals[2] = movement.getBalance();
                 });
                 if(movementListResponse1.size()>1){
