@@ -31,5 +31,5 @@ public class ChatHistory implements Serializable {
 
     @ManyToOne
     @JoinColumn(name = "user_id")
-    private Users UserId;
+    private Users userId;
 }

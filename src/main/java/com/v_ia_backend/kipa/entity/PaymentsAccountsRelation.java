@@ -12,7 +12,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @Entity
 @Getter
 @Setter
-@Table(name = "tbl_payments_accounts_relation")
+@Table(name = "tbl_payments_accounts_relation_last")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class PaymentsAccountsRelation implements Serializable {
     @Id
@@ -26,28 +26,13 @@ public class PaymentsAccountsRelation implements Serializable {
     
     @Column(name = "entity_name")
     private String consecutiveNumber;
-
+    
     @Column(name = "payment_date")
     private String paymentDate;
-
-    @Column(name = "payment_date_2")
-    private String paymentDate2;
-
-    @Column(name = "payment_date_3")
-    private String paymentDate3;
-
-    @Column(name = "payment_value")
-    private String paymentValue;
-
-    @Column(name = "payment_value_2")
-    private String paymentValue2;
-
-    @Column(name = "payment_value_3")
-    private String paymentValue3;
-
+    
     @Column(name = "document_number")
     private String documentNumber;
-
+    
     @Column(name = "subtotal")
     private String subtotal;
 

@@ -34,4 +34,9 @@ public class ChatHistoryController {
     public ResponseEntity<Object> getAllChatHistoryController() {
         return ResponseEntity.ok(chatHistoryService.getAllChatHistory());
     }
+
+    @GetMapping("/get/user/{id}")
+    public ResponseEntity<Object> getAllChatHistoryController(@PathVariable Long id) {
+        return ResponseEntity.ok(chatHistoryService.getChatHistoryByUserId(id));
+    }
 }

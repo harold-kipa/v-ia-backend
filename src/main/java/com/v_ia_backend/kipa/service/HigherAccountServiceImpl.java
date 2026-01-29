@@ -3,6 +3,7 @@ package com.v_ia_backend.kipa.service;
 import org.springframework.stereotype.Service;
 
 import com.v_ia_backend.kipa.entity.HigherAccounts;
+import com.v_ia_backend.kipa.interfase.HigherAccountInterfase;
 import com.v_ia_backend.kipa.repository.HigherAccountsRepositoriy;
 import com.v_ia_backend.kipa.service.interfaces.HigherAccountService;
 
@@ -28,6 +29,12 @@ public class HigherAccountServiceImpl implements HigherAccountService {
             }
         );
         return finalAccounts;
+    }
+
+    @Override
+    public List<HigherAccountInterfase> getAllHigherAccountsCapex(String investmentTarget) {
+        List<HigherAccountInterfase> higherAccounts = HigherAccountsRepositoriy.findByInvestmentTarget(investmentTarget);
+        return higherAccounts;
     }
 
     @Override

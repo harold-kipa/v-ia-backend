@@ -37,6 +37,12 @@ public class ChatHistoryServiceImpl implements ChatHistoryService {
         
         return ChatHistoryRepository.save(chatHistory);
     }
+
+    public List<ChatHistory> getChatHistoryByUserId(Long userId) {
+        List<ChatHistory> chatHistory = ChatHistoryRepository.findByUserId_Id(userId);
+        return chatHistory;
+    }
+    
     public List<ChatHistory> getAllChatHistory() {
         List<ChatHistory> chatHistory = ChatHistoryRepository.findAll();
         return chatHistory;

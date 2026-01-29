@@ -41,6 +41,18 @@ public class MovementsController {
 
     }
 
+    @GetMapping("/get/capex/{id}")
+    public ResponseEntity<Object> getMovementCapexController(@PathVariable Long id) {
+        return ResponseEntity.ok(movementService.getMovementByCapex(id));
+
+    }
+
+    @GetMapping("/get/opex/{id}")
+    public ResponseEntity<Object> getMovementOpexController(@PathVariable Long id) {
+        return ResponseEntity.ok(movementService.getMovementByOpex(id));
+
+    }
+
     @PostMapping("/get-filter")
     public ResponseEntity<Object> getAllMovementsByFilterController(@Valid @RequestBody MovementFilterRequest movementFilterRequest) {
         return ResponseEntity.ok(movementService.getAllMovementsByFilter(movementFilterRequest));

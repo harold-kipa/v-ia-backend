@@ -18,7 +18,7 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
-@Table(name = "tbl_higher_accounts_final")
+@Table(name = "tbl_higher_accounts_new")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class HigherAccounts implements Serializable {
     @Id
@@ -37,6 +37,12 @@ public class HigherAccounts implements Serializable {
 
     @Column(name = "account_name_homologated")
     private String accountNameHomologated;
+
+    @Column(name = "excecution_clasification")
+    private String excecutionClasification;
+
+    @Column(name = "investment_target")
+    private String investmentTarget;
 
     @ManyToOne
     @JoinColumn(name = "higher_accounts_view_id")

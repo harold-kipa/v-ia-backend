@@ -15,14 +15,18 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 import com.v_ia_backend.kipa.dto.request.MovementFilterRequest;
+import com.v_ia_backend.kipa.dto.response.CapexResponse;
 import com.v_ia_backend.kipa.dto.response.MovementListResponse;
 import com.v_ia_backend.kipa.dto.response.MovementResponse;
 import com.v_ia_backend.kipa.dto.response.MovementTableResponse;
+import com.v_ia_backend.kipa.dto.response.OpexResponse;
 import com.v_ia_backend.kipa.entity.FilesOp;
 import com.v_ia_backend.kipa.entity.HigherAccounts;
 import com.v_ia_backend.kipa.entity.Movements;
 import com.v_ia_backend.kipa.entity.PaymentsAccountsRelation;
+import com.v_ia_backend.kipa.interfase.HigherAccountInterfase;
 import com.v_ia_backend.kipa.interfase.MovementsInterfase;
+import com.v_ia_backend.kipa.interfase.MovementsYearInterfase;
 import com.v_ia_backend.kipa.repository.MovementsRepositoriy;
 import com.v_ia_backend.kipa.service.interfaces.MovementService;
 
@@ -125,6 +129,10 @@ public class MovementServiceImpl implements MovementService {
         else if(movementFilterRequest.getAuxiliaryId() == null && movementFilterRequest.getStartDate() == null && movementFilterRequest.getEndDate() == null){
             movements = this.MovementsRepositoriy.findByHigherAccountId_IdBetween(movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId());
         }
+        else if(movementFilterRequest.getAuxiliaryId() != null && movementFilterRequest.getStartDate() != null && movementFilterRequest.getEndDate() != null && movementFilterRequest.getInitialAccountId() == null){
+            movementsBefore = this.MovementsRepositoriy.findByMovementDateBetweenAndAuxiliaryId_Id(initialDate, movementFilterRequest.getStartDate(), movementFilterRequest.getAuxiliaryId());
+            movements = this.MovementsRepositoriy.findByMovementDateBetweenAndAuxiliaryId_Id(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate(), movementFilterRequest.getAuxiliaryId());
+        }
         else if(movementFilterRequest.getAuxiliaryId() == null ){
             movementsBefore = this.MovementsRepositoriy.findByMovementDateBetweenAndHigherAccountId_IdBetween(initialDate, movementFilterRequest.getStartDate(), movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId());
             movements = this.MovementsRepositoriy.findByMovementDateBetweenAndHigherAccountId_IdBetween(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate(), movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId());
@@ -179,13 +187,95 @@ public class MovementServiceImpl implements MovementService {
     }
 
     @Override
+    public List<CapexResponse> getMovementByCapex(Long year) {
+        Timestamp initialDate = Timestamp.valueOf("2015-01-01 05:00:00");
+        Timestamp finalDate = Timestamp.valueOf(year + "-12-12 05:00:00");
+        // List<MovementsYearInterfase> movementsInterfase = new ArrayList<>();
+        List<HigherAccountInterfase> higherAccounts = higherAccountServiceImpl.getAllHigherAccountsCapex("capex");
+
+        List<Long> higherAccountIds = higherAccounts.stream()
+        .filter(h -> h.getInvestmentTarget() != null)
+        .map(HigherAccountInterfase::getId)
+        .toList();
+
+        System.out.println(higherAccountIds);
+
+        List<MovementsYearInterfase> movementsInterfase = MovementsRepositoriy
+            .findByMovementDateBetweenAndHigherAccountId_IdIn(
+                initialDate,
+                finalDate,
+                higherAccountIds
+            );
+        // for (HigherAccounts higherAccount : higherAccounts) {
+        List<CapexResponse> capexResponseFinal = new java.util.ArrayList<>();
+        for (MovementsYearInterfase movement : movementsInterfase) {
+            CapexResponse capexResponse = capexResponseFinal.stream().filter(p -> p.getHigherAccountsId().getExcecutionClasification().equals(movement.getHigherAccountId().getExcecutionClasification())).findFirst().orElse(null);
+            if(capexResponse == null){
+                capexResponse = new CapexResponse();
+                capexResponse.setHigherAccountsId(movement.getHigherAccountId());
+                capexResponse.setCapexTotal(stringToLong(movement.getVoucherAmount()));
+                capexResponse.setYear(movement.getMovementDate().toLocalDateTime().getYear());
+                capexResponseFinal.add(capexResponse);
+            }
+            else{
+                capexResponse.setCapexTotal(capexResponse.getCapexTotal().add(stringToLong((movement.getVoucherAmount()))));
+            }
+        }
+        // }
+        return capexResponseFinal;
+    }
+
+    @Override
+    public List<CapexResponse> getMovementByOpex(Long year) {
+        Timestamp initialDate = Timestamp.valueOf("2015-01-01 05:00:00");
+        Timestamp finalDate = Timestamp.valueOf(year + "-12-12 05:00:00");
+        // List<MovementsYearInterfase> movementsInterfase = new ArrayList<>();
+        List<HigherAccountInterfase> higherAccounts = higherAccountServiceImpl.getAllHigherAccountsCapex("opex");
+
+        List<Long> higherAccountIds = higherAccounts.stream()
+        .filter(h -> h.getInvestmentTarget() != null)
+        .map(HigherAccountInterfase::getId)
+        .toList();
+
+        System.out.println(higherAccountIds);
+
+        List<MovementsYearInterfase> movementsInterfase = MovementsRepositoriy
+            .findByMovementDateBetweenAndHigherAccountId_IdIn(
+                initialDate,
+                finalDate,
+                higherAccountIds
+            );
+        // for (HigherAccounts higherAccount : higherAccounts) {
+        List<CapexResponse> capexResponseFinal = new java.util.ArrayList<>();
+        for (MovementsYearInterfase movement : movementsInterfase) {
+            CapexResponse capexResponse = capexResponseFinal.stream().filter(p -> p.getHigherAccountsId().getExcecutionClasification().equals(movement.getHigherAccountId().getExcecutionClasification())).findFirst().orElse(null);
+            if(capexResponse == null){
+                capexResponse = new CapexResponse();
+                capexResponse.setHigherAccountsId(movement.getHigherAccountId());
+                capexResponse.setCapexTotal(stringToLong(movement.getVoucherAmount()));
+                capexResponse.setYear(movement.getMovementDate().toLocalDateTime().getYear());
+                capexResponseFinal.add(capexResponse);
+            }
+            else{
+                capexResponse.setCapexTotal(capexResponse.getCapexTotal().add(stringToLong((movement.getVoucherAmount()))));
+            }
+        }
+        // }
+        return capexResponseFinal;
+    }
+
+
+
+    @Override
     public MovementResponse getMovementById(Long id) {
         Movements movements = MovementsRepositoriy.findById(id).orElse(null);
         MovementResponse response = new MovementResponse();
         response.setMovements(movements);
         if (movements.getPoContractId() == null || movements.getPoContractId().getFileId() == null ) {
             List<FilesOp> filesOp = filesOpServiceImpl.getFilesOpByPaymentsAccountsRelationId(response.getMovements().getPaymentsAccountsRelationId().getId());
+            List<FilesOp> filesOpFinal = new java.util.ArrayList<>();
             for (FilesOp file : filesOp) {
+                
                 String url = file.getFileUrl();
 
                 if (url == null || url.trim().isEmpty()) {
@@ -195,10 +285,11 @@ public class MovementServiceImpl implements MovementService {
                 try (InputStream is = new URL(url.trim()).openStream()) {
                     byte[] pdfBytes = is.readAllBytes();
                     file.setFileUrl(Base64.getEncoder().encodeToString(pdfBytes)); // mejor: usar otro campo
+                    filesOpFinal.add(file);
                 } catch (IOException e) {
                 }
             }
-            response.setFilesOp(filesOp);
+            response.setFilesOp(filesOpFinal);
             // return response;
             try {
                 for (int i = 0; i < response.getFilesOp().size(); i++) {
@@ -215,10 +306,80 @@ public class MovementServiceImpl implements MovementService {
             } catch (IOException e) {
                 System.out.println("Error al obtener el archivo PDF: " + e.getMessage());
             }
-        };
+        }
+        else{
+            if (response.getMovements() != null
+                    && response.getMovements().getPaymentsAccountsRelationId() != null
+                    && response.getMovements().getPaymentsAccountsRelationId().getId() != null) {
+                List<FilesOp> filesOp = filesOpServiceImpl.getFilesOpByPaymentsAccountsRelationId(response.getMovements().getPaymentsAccountsRelationId().getId());
+                List<FilesOp> filesOpFinal = new java.util.ArrayList<>();
+                for (FilesOp file : filesOp) {
+                    
+                    String url = file.getFileUrl();
+    
+                    if (url == null || url.trim().isEmpty()) {
+                        continue;
+                    }
+    
+                    try (InputStream is = new URL(url.trim()).openStream()) {
+                        byte[] pdfBytes = is.readAllBytes();
+                        file.setFileUrl(Base64.getEncoder().encodeToString(pdfBytes)); // mejor: usar otro campo
+                        filesOpFinal.add(file);
+                    } catch (IOException e) {
+                    }
+                }
+                response.setFilesOp(filesOpFinal);
+                // return response;
+                try {
+                    for (int i = 0; i < response.getFilesOp().size(); i++) {
+                        String url = response.getFilesOp().get(i).getFileUrl()
+                                      .trim()
+                                      .replace(" ", "%20");
+                        InputStream is = new URL(url).openStream();
+                        byte[] pdfBytes = is.readAllBytes();
+            
+                        response.getFilesOp().get(i)
+                                .setFileUrl(Base64.getEncoder().encodeToString(pdfBytes));
+                    }
+        
+                } catch (IOException e) {
+                    System.out.println("Error al obtener el archivo PDF: " + e.getMessage());
+                }
+            }
+            try {
+                String url = response.getMovements().getPoContractId().getFileId().getFileUrl()
+                                .trim()
+                                .replace(" ", "%20");
+                InputStream is = new URL(url).openStream();
+                byte[] pdfBytes = is.readAllBytes();
+    
+                response.getMovements().getPoContractId().getFileId()
+                        .setFileUrl(Base64.getEncoder().encodeToString(pdfBytes));
+    
+            } catch (IOException e) {
+                System.out.println("Error al obtener el archivo PDF: " + e.getMessage());
+            }
+        }
 
         
         return response;
+    }
+
+    public BigDecimal stringToLong(String raw){
+        java.math.BigDecimal amount = java.math.BigDecimal.ZERO;
+        if(raw != null && !raw.isBlank()){
+            // Normalize: remove grouping separators and trim
+            String cleaned = raw.replaceAll("[,\\s]", "");
+            try{
+                return new java.math.BigDecimal(cleaned);
+            } catch (NumberFormatException ex){
+                // If parsing fails, fallback to zero to avoid crashing; log the problem
+                System.err.println("Failed parsing voucherAmount");
+                return java.math.BigDecimal.ZERO;
+            }
+        }
+        return BigDecimal.ZERO;
+
     }
     public List<MovementListResponse> sortMovements(List<MovementsInterfase> movements){
         List<MovementListResponse> movementListResponse = new java.util.ArrayList<>();

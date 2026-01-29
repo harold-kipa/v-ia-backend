@@ -11,6 +11,6 @@ import java.util.List;
 public interface ChatHistoryService {
     // ChatHistory getChatHistoryById(Long id);
     List<ChatHistory> getAllChatHistory();
-
+    List<ChatHistory> getChatHistoryByUserId(Long userId);
     ChatHistory createChatHistory(ChatHistoryRequest request);
 }
