@@ -13,7 +13,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @Setter
 @Table(name = "tbl_chat_history")
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ChatHistory implements Serializable {
+public class Conversations implements Serializable {
     @Id
     @GeneratedValue(strategy=GenerationType.IDENTITY)
     @Column(name = "chat_history_id")
