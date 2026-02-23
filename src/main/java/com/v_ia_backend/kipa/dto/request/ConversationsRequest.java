@@ -12,14 +12,11 @@ import jakarta.validation.constraints.Pattern;
 public class ConversationsRequest {
 
     @NotEmpty(message = "{notNull.general}")
-    private String chatHistoryName;
+    private String from;
 
     @NotEmpty(message = "{notNull.general}")
-    private String tokenChat;
+    private String text;
 
     @NotEmpty(message = "{notNull.general}")
-    private String conversationIdentifier;
-
-    @NotEmpty(message = "{notNull.general}")
-    private Integer userId;   
+    private Long chatHistoryId;   
 }

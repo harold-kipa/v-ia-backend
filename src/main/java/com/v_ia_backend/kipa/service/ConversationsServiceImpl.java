@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import com.v_ia_backend.kipa.dto.request.ConversationsRequest;
 import com.v_ia_backend.kipa.dto.request.UsersRequest;
+import com.v_ia_backend.kipa.entity.ChatHistory;
 import com.v_ia_backend.kipa.entity.Conversations;
 import com.v_ia_backend.kipa.entity.Users;
 import com.v_ia_backend.kipa.repository.ConversationsRepository;
@@ -23,28 +24,27 @@ public class ConversationsServiceImpl implements ConversationsService {
 
     private final MessageSource messageSource;
     private final ConversationsRepository conversationsRepository;
-    private final UserServiceImpl userService;
-    public ConversationsServiceImpl(MessageSource messageSource, ConversationsRepository conversationsRepository, UserServiceImpl userService) {
+    private final ChatHistoryServiceImpl chatHistory;
+    public ConversationsServiceImpl(MessageSource messageSource, ConversationsRepository conversationsRepository, ChatHistoryServiceImpl chatHistory) {
         this.messageSource = messageSource;
         this.conversationsRepository = conversationsRepository;
-        this.userService = userService;
+        this.chatHistory = chatHistory;
     }
     public Conversations createConversations(ConversationsRequest request){
         Conversations conversations = new Conversations();
-        conversations.setChatHistoryName(request.getChatHistoryName());
-        conversations.setConversationIdentifier(request.getConversationIdentifier());
-        conversations.setUserId(userService.getUserById(request.getUserId()));
+        conversations.setFrom(request.getFrom().trim());
+        
+        conversations.setText(request.getText());
+        conversations.setChatHistoryId(chatHistory.getChatHistoryById(request.getChatHistoryId()));
         
         return conversationsRepository.save(conversations);
     }
 
-    public List<Conversations> getConversationsByUserId(Long userId) {
-        List<Conversations> conversations = conversationsRepository.findByUserId_Id(userId);
-        return conversations;
+    public List<Conversations> getConversationsByChatHistoryId(Long userId) {
+        return conversationsRepository.findByChatHistoryId_Id(userId);
     }
-    
+
     public List<Conversations> getAllConversations() {
-        List<Conversations> conversations = conversationsRepository.findAll();
-        return conversations;
+        return conversationsRepository.findAll();
     }
 }

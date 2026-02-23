@@ -4,12 +4,14 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.v_ia_backend.kipa.dto.request.ChatHistoryRequest;
 import com.v_ia_backend.kipa.dto.request.UsersRequest;
 import com.v_ia_backend.kipa.entity.ChatHistory;
 import com.v_ia_backend.kipa.entity.Users;
+import com.v_ia_backend.kipa.modelview.ResponseMessage;
 import com.v_ia_backend.kipa.repository.ChatHistoryRepository;
 import com.v_ia_backend.kipa.service.interfaces.ChatHistoryService;
 
@@ -42,9 +44,27 @@ public class ChatHistoryServiceImpl implements ChatHistoryService {
         List<ChatHistory> chatHistory = ChatHistoryRepository.findByUserId_Id(userId);
         return chatHistory;
     }
+
+    public ChatHistory getChatHistoryById(Long Id) {
+        return ChatHistoryRepository.findById(Id).orElse(null);
+    }
     
     public List<ChatHistory> getAllChatHistory() {
         List<ChatHistory> chatHistory = ChatHistoryRepository.findAll();
         return chatHistory;
+    }
+
+    public ChatHistory updateChatHistory(ChatHistoryRequest request, Long id){
+        ChatHistory chatHistory = getChatHistoryById(id);
+        chatHistory.setChatHistoryName(request.getChatHistoryName());
+        
+        return ChatHistoryRepository.save(chatHistory);
+    }
+    
+
+    public ResponseMessage deleteChatHistoryById(Long id) {
+        ChatHistory chatHistory = ChatHistoryRepository.findById(id).orElse(null);
+        ChatHistoryRepository.delete(chatHistory);
+        return new ResponseMessage(messageSource.getMessage("chat.deleted",null,"", LocaleContextHolder.getLocale()));
     }
 }

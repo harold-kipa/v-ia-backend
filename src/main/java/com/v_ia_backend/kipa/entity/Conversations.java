@@ -11,24 +11,21 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @Entity
 @Getter
 @Setter
-@Table(name = "tbl_chat_history")
+@Table(name = "tbl_conversations")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Conversations implements Serializable {
     @Id
     @GeneratedValue(strategy=GenerationType.IDENTITY)
-    @Column(name = "chat_history_id")
+    @Column(name = "conversations_id")
     private Long id;
 
-    @Column(name = "chat_history_name")
-    private String chatHistoryName;
+    @Column(name = "from_user")
+    private String from;
 
-    @Column(name = "token_chat")
-    private String tokenChat;
-
-    @Column(name = "conversation_identifier")
-    private String conversationIdentifier;
+    @Column(name = "text")
+    private String text;
 
     @ManyToOne
-    @JoinColumn(name = "user_id")
-    private Users userId;
+    @JoinColumn(name = "chat_history_id")
+    private ChatHistory chatHistoryId;
 }

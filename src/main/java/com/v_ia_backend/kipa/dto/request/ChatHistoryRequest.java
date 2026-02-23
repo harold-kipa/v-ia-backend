@@ -9,12 +9,12 @@ public class ChatHistoryRequest {
     @NotEmpty(message = "{notNull.general}")
     private String chatHistoryName;
 
-    @NotEmpty(message = "{notNull.general}")
+    // @NotEmpty(message = "{notNull.general}")
     private String tokenChat;
 
-    @NotEmpty(message = "{notNull.general}")
+    // @NotEmpty(message = "{notNull.general}")
     private String conversationIdentifier;
 
-    @NotEmpty(message = "{notNull.general}")
+    // @NotEmpty(message = "{notNull.general}")
     private Integer userId;   
 }

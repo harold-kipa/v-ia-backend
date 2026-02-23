@@ -11,6 +11,6 @@ import java.util.List;
 public interface ConversationsService {
     // Conversations getConversationsById(Long id);
     List<Conversations> getAllConversations();
-    List<Conversations> getConversationsByUserId(Long userId);
+    List<Conversations> getConversationsByChatHistoryId(Long userId);
     Conversations createConversations(ConversationsRequest request);
 }

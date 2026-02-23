@@ -12,7 +12,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @Entity
 @Getter
 @Setter
-@Table(name = "tbl_payments_accounts_relation_last")
+@Table(name = "tbl_payments_accounts_relation_final")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class PaymentsAccountsRelation implements Serializable {
     @Id

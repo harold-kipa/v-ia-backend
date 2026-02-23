@@ -10,5 +10,5 @@ import com.v_ia_backend.kipa.entity.Conversations;
 
 @Repository
 public interface ConversationsRepository extends JpaRepository<Conversations, Long> {
-    List<Conversations> findByUserId_Id(Long userId);
+    List<Conversations> findByChatHistoryId_Id(Long userId);
 }
