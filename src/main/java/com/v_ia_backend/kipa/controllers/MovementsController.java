@@ -1,5 +1,7 @@
 package com.v_ia_backend.kipa.controllers;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -28,6 +30,11 @@ public class MovementsController {
 
     public MovementsController(MovementServiceImpl movementService) {
         this.movementService = movementService;
+    }
+
+    @PostMapping("/get/files")
+    public ResponseEntity<Object> getAllFilesByMovementsController(@RequestBody List<Long> movementIds) {
+        return ResponseEntity.ok(movementService.getAllFilesByMovements(movementIds));
     }
 
     @GetMapping("/get/{id}")

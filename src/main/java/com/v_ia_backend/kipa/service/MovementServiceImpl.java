@@ -32,6 +32,7 @@ import com.v_ia_backend.kipa.entity.HigherAccountsView;
 import com.v_ia_backend.kipa.entity.Movements;
 import com.v_ia_backend.kipa.entity.PaymentsAccountsRelation;
 import com.v_ia_backend.kipa.interfase.HigherAccountInterfase;
+import com.v_ia_backend.kipa.interfase.MovementsFilesInterfase;
 import com.v_ia_backend.kipa.interfase.MovementsInterfase;
 import com.v_ia_backend.kipa.interfase.MovementsYearInterfase;
 import com.v_ia_backend.kipa.repository.MovementsRepositoriy;
@@ -310,7 +311,30 @@ public class MovementServiceImpl implements MovementService {
         return capexResponseFinal;
     }
 
-
+    @Override
+    public List<MovementsFilesInterfase> getAllFilesByMovements(List<Long> movementIds) {
+        List<MovementsFilesInterfase> movementsFilesInterfase = MovementsRepositoriy.findByIdIn(movementIds);
+        movementsFilesInterfase.forEach( movementFileInterfase -> {
+            List<FilesOp> filesOp = filesOpServiceImpl.getFilesOpByPaymentsAccountsRelationId(movementFileInterfase.getPaymentsAccountsRelationId_Id());
+            List<FilesOp> filesOpFinal = new java.util.ArrayList<>();
+            for (FilesOp file : filesOp) {
+                
+                String url = file.getFileUrl();
+    
+                if (url == null || url.trim().isEmpty()) {
+                    continue;
+                }
+    
+                try (InputStream is = new URL(url.trim()).openStream()) {
+                    byte[] pdfBytes = is.readAllBytes();
+                    file.setFileUrl(Base64.getEncoder().encodeToString(pdfBytes)); // mejor: usar otro campo
+                    filesOpFinal.add(file);
+                } catch (IOException e) {
+                }
+            }
+        });
+        return movementsFilesInterfase;
+    }
 
     @Override
     public MovementResponse getMovementById(Long id) {

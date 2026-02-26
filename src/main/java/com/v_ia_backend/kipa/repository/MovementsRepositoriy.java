@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import com.v_ia_backend.kipa.entity.Movements;
+import com.v_ia_backend.kipa.interfase.MovementsFilesInterfase;
 import com.v_ia_backend.kipa.interfase.MovementsInterfase;
 import com.v_ia_backend.kipa.interfase.MovementsYearInterfase;
 
@@ -21,6 +22,8 @@ public interface MovementsRepositoriy extends JpaRepository<Movements, Long> {
     List<MovementsInterfase> findDistinctByPoContractId_Id(Long poContractId);
     List<MovementsInterfase> findDistinctByMovementDateBetweenAndHigherAccountId_IdBetweenAndPaymentsAccountsRelationId_Id(Timestamp fechaInicio, Timestamp fechaFin, Long initialAccount, Long finalAccount, Long poContractId);
     List<MovementsInterfase> findDistinctByPaymentsAccountsRelationId_Id(Long paymentsAccountsRelationId);
+    List<MovementsInterfase> findByPaymentsAccountsRelationId_Id(Long paymentsAccountsRelationId);
+    List<MovementsFilesInterfase> findByIdIn(List<Long> movementIds);
     // List<MovementsYearInterfase> findByMovementDateBetweenAndHigherAccountId_IdIn(Timestamp initialAccount, Timestamp finalAccount, Long higherAccountId);
     List<MovementsYearInterfase> findByMovementDateBetweenAndHigherAccountId_IdIn(
             Timestamp initialDate,

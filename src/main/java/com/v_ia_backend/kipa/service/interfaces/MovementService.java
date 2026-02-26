@@ -9,6 +9,7 @@ import com.v_ia_backend.kipa.dto.response.MovementResponse;
 import com.v_ia_backend.kipa.dto.response.MovementTableResponse;
 import com.v_ia_backend.kipa.dto.response.MovementTotalsResponse;
 import com.v_ia_backend.kipa.entity.Movements;
+import com.v_ia_backend.kipa.interfase.MovementsFilesInterfase;
 import com.v_ia_backend.kipa.interfase.MovementsInterfase;
 
 import java.math.BigDecimal;
@@ -24,4 +25,5 @@ public interface MovementService {
     List<CapexResponse> getMovementByCapex(Long year);
     List<CapexResponse> getMovementByOpex(Long year);
     BigDecimal stringToLong(String raw);
+    List<MovementsFilesInterfase> getAllFilesByMovements(List<Long> movementIds);
 }
