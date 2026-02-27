@@ -3,7 +3,9 @@ package com.v_ia_backend.kipa.service;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.net.URI;
 import java.net.URL;
+import java.net.http.HttpResponse;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
@@ -16,9 +18,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import com.v_ia_backend.kipa.dto.request.MovementFilesRequest;
 import com.v_ia_backend.kipa.dto.request.MovementFilterRequest;
 import com.v_ia_backend.kipa.dto.response.CapexResponse;
 import com.v_ia_backend.kipa.dto.response.MovementListResponse;
@@ -312,26 +318,72 @@ public class MovementServiceImpl implements MovementService {
     }
 
     @Override
-    public List<MovementsFilesInterfase> getAllFilesByMovements(List<Long> movementIds) {
-        List<MovementsFilesInterfase> movementsFilesInterfase = MovementsRepositoriy.findByIdIn(movementIds);
-        movementsFilesInterfase.forEach( movementFileInterfase -> {
-            List<FilesOp> filesOp = filesOpServiceImpl.getFilesOpByPaymentsAccountsRelationId(movementFileInterfase.getPaymentsAccountsRelationId_Id());
-            List<FilesOp> filesOpFinal = new java.util.ArrayList<>();
-            for (FilesOp file : filesOp) {
-                
-                String url = file.getFileUrl();
-    
-                if (url == null || url.trim().isEmpty()) {
-                    continue;
+    public List<MovementsFilesInterfase> getAllFilesByMovements(List<MovementFilesRequest> movementIds) {
+        List<MovementsFilesInterfase> movementsFilesInterfaseFinal = new java.util.ArrayList<>();
+        movementIds.forEach(movement -> {
+            List<MovementsFilesInterfase> movementsFilesInterfase = MovementsRepositoriy.findByIdIn(movement.getIds()); 
+            movementsFilesInterfase.forEach( movementFileInterfase -> {
+                List<FilesOp> filesOp = filesOpServiceImpl.getFilesOpByPaymentsAccountsRelationId(movementFileInterfase.getPaymentsAccountsRelationId_Id());
+                List<FilesOp> filesOpFinal = new java.util.ArrayList<>();
+                for (FilesOp file : filesOp) {
+                    
+                    String url = file.getFileUrl();
+        
+                    if (url == null || url.trim().isEmpty()) {
+                        continue;
+                    }
+                    // String zipName = "pdfs.zip";
+
+                    // StreamingResponseBody stream = outputStream -> {
+                    //     try (ZipOutputStream zos = new ZipOutputStream(outputStream)) {
+
+                    //         Set<String> usedNames = new HashSet<>();
+
+                    //         for (ZipItem item : request.items()) {
+                    //             if (item == null || item.url() == null || item.url().isBlank()) continue;
+
+                    //             String folder = sanitizeFolder(item.folder());
+                    //             String fileName = sanitizeFileName(item.fileName());
+
+                    //             // Si no mandan nombre, se intenta sacar del URL, o se pone uno genérico
+                    //             if (!StringUtils.hasText(fileName)) {
+                    //                 fileName = guessFileNameFromUrl(item.url());
+                    //             }
+                    //             if (!fileName.toLowerCase().endsWith(".pdf")) {
+                    //                 fileName = fileName + ".pdf";
+                    //             }
+
+                    //             // Evitar duplicados dentro del ZIP
+                    //             String entryNameBase = (StringUtils.hasText(folder) ? folder + "/" : "") + fileName;
+                    //             String entryName = dedupe(entryNameBase, usedNames);
+
+                    //             // Descargar y escribir al ZIP
+                    //             HttpRequest httpRequest = HttpRequest.newBuilder()
+                    //                     .uri(URI.create(item.url()))
+                    //                     .timeout(Duration.ofSeconds(60))
+                    //                     .GET()
+                    //                     .build();
+
+                    //             HttpResponse<InputStream> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofInputStream());
+
+                    //             if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                    //                 // Si falla, agregamos un .txt dentro del zip con el error (opcional)
+                    //                 addErrorEntry(zos, entryName + ".error.txt",
+                    //                         "No se pudo descargar: " + item.url() + " (HTTP " + response.statusCode() + ")");
+                    //                 continue;
+                    //             }
+
+                    //             zos.putNextEntry(new ZipEntry(entryName));
+                    //             try (InputStream in = response.body()) {
+                    //                 in.transferTo(zos);
+                    //             }
+                    //             zos.closeEntry();
+                    //             zos.flush();
+                    //         }
+                    //     }
+                    // }
                 }
-    
-                try (InputStream is = new URL(url.trim()).openStream()) {
-                    byte[] pdfBytes = is.readAllBytes();
-                    file.setFileUrl(Base64.getEncoder().encodeToString(pdfBytes)); // mejor: usar otro campo
-                    filesOpFinal.add(file);
-                } catch (IOException e) {
-                }
-            }
+            });
         });
         return movementsFilesInterfase;
     }

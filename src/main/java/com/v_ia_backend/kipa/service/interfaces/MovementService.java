@@ -2,6 +2,7 @@ package com.v_ia_backend.kipa.service.interfaces;
 
 import org.springframework.stereotype.Service;
 
+import com.v_ia_backend.kipa.dto.request.MovementFilesRequest;
 import com.v_ia_backend.kipa.dto.request.MovementFilterRequest;
 import com.v_ia_backend.kipa.dto.response.CapexResponse;
 import com.v_ia_backend.kipa.dto.response.MovementListResponse;
@@ -25,5 +26,5 @@ public interface MovementService {
     List<CapexResponse> getMovementByCapex(Long year);
     List<CapexResponse> getMovementByOpex(Long year);
     BigDecimal stringToLong(String raw);
-    List<MovementsFilesInterfase> getAllFilesByMovements(List<Long> movementIds);
+    List<MovementsFilesInterfase> getAllFilesByMovements(List<MovementFilesRequest> movementIds);
 }
