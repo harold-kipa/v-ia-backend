@@ -5,7 +5,9 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URL;
+import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.HttpClient;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
@@ -23,6 +25,10 @@ import java.util.zip.ZipOutputStream;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+import org.springframework.util.StringUtils;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
 
 import com.v_ia_backend.kipa.dto.request.MovementFilesRequest;
 import com.v_ia_backend.kipa.dto.request.MovementFilterRequest;
@@ -58,6 +64,10 @@ public class MovementServiceImpl implements MovementService {
         this.higherAccountServiceImpl = higherAccountServiceImpl;
         this.filesOpServiceImpl = filesOpServiceImpl;
     }
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .followRedirects(HttpClient.Redirect.NORMAL)
+            .connectTimeout(Duration.ofSeconds(20))
+            .build();
 
     @Override
     public MovementTotalsResponse getAllMovementsByFilter(MovementFilterRequest movementFilterRequest) {
@@ -318,76 +328,85 @@ public class MovementServiceImpl implements MovementService {
     }
 
     @Override
-    public List<MovementsFilesInterfase> getAllFilesByMovements(List<MovementFilesRequest> movementIds) {
-        List<MovementsFilesInterfase> movementsFilesInterfaseFinal = new java.util.ArrayList<>();
-        movementIds.forEach(movement -> {
-            List<MovementsFilesInterfase> movementsFilesInterfase = MovementsRepositoriy.findByIdIn(movement.getIds()); 
-            movementsFilesInterfase.forEach( movementFileInterfase -> {
-                List<FilesOp> filesOp = filesOpServiceImpl.getFilesOpByPaymentsAccountsRelationId(movementFileInterfase.getPaymentsAccountsRelationId_Id());
-                List<FilesOp> filesOpFinal = new java.util.ArrayList<>();
-                for (FilesOp file : filesOp) {
-                    
-                    String url = file.getFileUrl();
-        
-                    if (url == null || url.trim().isEmpty()) {
-                        continue;
+    public StreamingResponseBody getAllFilesByMovements(List<MovementFilesRequest> movements) {
+
+        return outputStream -> {
+            try (ZipOutputStream zos = new ZipOutputStream(outputStream)) {
+
+                Set<String> usedNames = new HashSet<>();
+
+                for (MovementFilesRequest movement : movements) {
+
+                    // 1) Buscar relaciones por IDs
+                    List<MovementsFilesInterfase> rels =
+                            MovementsRepositoriy.findByIdIn(movement.getIds());
+
+                    for (MovementsFilesInterfase rel : rels) {
+
+                        // 2) Traer archivos asociados
+                        if(rel.getPaymentsAccountsRelationId_Id() != null){
+                            List<FilesOp> filesOp =
+                                    filesOpServiceImpl.getFilesOpByPaymentsAccountsRelationId(rel.getPaymentsAccountsRelationId_Id());
+                            System.out.println(rel.getPaymentsAccountsRelationId_Id());
+                            // 3) Meter cada PDF al ZIP
+                            for (FilesOp item : filesOp) {
+                                if (item == null) continue;
+
+                                String url = item.getFileUrl();
+                                if (url == null || url.isBlank() || url.trim().isEmpty()) continue;
+
+                                String folder = sanitizeFolder(movement.getAccountNumberHomologated() == null
+                                            ? ""
+                                            : movement.getAccountNumberHomologated().toString());
+                                String fileName = sanitizeFileName(item.getFileName());
+
+                                if (!StringUtils.hasText(fileName)) fileName = "documento.pdf";
+                                if (!fileName.toLowerCase().endsWith(".pdf")) fileName += ".pdf";
+
+                                String entryNameBase = (StringUtils.hasText(folder) ? folder + "/" : "") + fileName;
+                                String entryName = dedupe(entryNameBase, usedNames);
+
+                                HttpRequest httpRequest = HttpRequest.newBuilder()
+                                        .uri(URI.create(url.trim()))
+                                        .timeout(Duration.ofSeconds(60))
+                                        .GET()
+                                        .build();
+
+                                System.out.println("Descargando " + url.trim() + " para incluir como " + entryName);
+
+                                try {
+                                    HttpResponse<InputStream> response =
+                                            httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofInputStream());
+
+                                    if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                                        addErrorEntry(zos, entryName + ".error.txt",
+                                                "No se pudo descargar: " + url + " (HTTP " + response.statusCode() + ")");
+                                        continue;
+                                    }
+
+                                    zos.putNextEntry(new ZipEntry(entryName));
+                                    try (InputStream in = response.body()) {
+                                        in.transferTo(zos);
+                                    }
+                                    zos.closeEntry();
+
+                                } catch (InterruptedException e) {
+                                    Thread.currentThread().interrupt();
+                                    addErrorEntry(zos, entryName + ".error.txt",
+                                            "Descarga interrumpida: " + url);
+                                } catch (Exception e) {
+                                    addErrorEntry(zos, entryName + ".error.txt",
+                                            "Error descargando " + url + ": " + e.getMessage());
+                                }
+                            }
+                        }
                     }
-                    // String zipName = "pdfs.zip";
-
-                    // StreamingResponseBody stream = outputStream -> {
-                    //     try (ZipOutputStream zos = new ZipOutputStream(outputStream)) {
-
-                    //         Set<String> usedNames = new HashSet<>();
-
-                    //         for (ZipItem item : request.items()) {
-                    //             if (item == null || item.url() == null || item.url().isBlank()) continue;
-
-                    //             String folder = sanitizeFolder(item.folder());
-                    //             String fileName = sanitizeFileName(item.fileName());
-
-                    //             // Si no mandan nombre, se intenta sacar del URL, o se pone uno genérico
-                    //             if (!StringUtils.hasText(fileName)) {
-                    //                 fileName = guessFileNameFromUrl(item.url());
-                    //             }
-                    //             if (!fileName.toLowerCase().endsWith(".pdf")) {
-                    //                 fileName = fileName + ".pdf";
-                    //             }
-
-                    //             // Evitar duplicados dentro del ZIP
-                    //             String entryNameBase = (StringUtils.hasText(folder) ? folder + "/" : "") + fileName;
-                    //             String entryName = dedupe(entryNameBase, usedNames);
-
-                    //             // Descargar y escribir al ZIP
-                    //             HttpRequest httpRequest = HttpRequest.newBuilder()
-                    //                     .uri(URI.create(item.url()))
-                    //                     .timeout(Duration.ofSeconds(60))
-                    //                     .GET()
-                    //                     .build();
-
-                    //             HttpResponse<InputStream> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofInputStream());
-
-                    //             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                    //                 // Si falla, agregamos un .txt dentro del zip con el error (opcional)
-                    //                 addErrorEntry(zos, entryName + ".error.txt",
-                    //                         "No se pudo descargar: " + item.url() + " (HTTP " + response.statusCode() + ")");
-                    //                 continue;
-                    //             }
-
-                    //             zos.putNextEntry(new ZipEntry(entryName));
-                    //             try (InputStream in = response.body()) {
-                    //                 in.transferTo(zos);
-                    //             }
-                    //             zos.closeEntry();
-                    //             zos.flush();
-                    //         }
-                    //     }
-                    // }
                 }
-            });
-        });
-        return movementsFilesInterfase;
-    }
 
+                zos.finish(); // opcional, el close lo hace igual
+            }
+        };
+    }
     @Override
     public MovementResponse getMovementById(Long id) {
         Movements movements = MovementsRepositoriy.findById(id).orElse(null);
@@ -702,6 +721,53 @@ public class MovementServiceImpl implements MovementService {
         return movements.stream()
                 .filter(m -> seenIds.add(m.getId()))
                 .collect(Collectors.toList());
+    }
+
+    private String sanitizeFolder(String folder) {
+        if (folder == null) {
+            return "";
+        }
+        return folder.replaceAll("[^a-zA-Z0-9._\\-/]", "").trim();
+    }
+
+    private String sanitizeFileName(String fileName) {
+        if (fileName == null) {
+            return "";
+        }
+        return fileName.replaceAll("[^a-zA-Z0-9._\\-]", "").trim();
+    }
+
+    private String guessFileNameFromUrl(String url) {
+        if (url == null || url.isBlank()) {
+            return "file";
+        }
+        String[] parts = url.split("/");
+        String fileName = parts[parts.length - 1];
+        return fileName.isBlank() ? "file" : fileName;
+    }
+
+    private String dedupe(String entryName, Set<String> usedNames) {
+        String result = entryName;
+        int counter = 1;
+        while (usedNames.contains(result)) {
+            String[] parts = entryName.split("\\.");
+            if (parts.length > 1) {
+                String extension = parts[parts.length - 1];
+                String name = entryName.substring(0, entryName.lastIndexOf("."));
+                result = name + "_" + counter + "." + extension;
+            } else {
+                result = entryName + "_" + counter;
+            }
+            counter++;
+        }
+        usedNames.add(result);
+        return result;
+    }
+
+    private void addErrorEntry(ZipOutputStream zos, String entryName, String message) throws IOException {
+        zos.putNextEntry(new ZipEntry(entryName));
+        zos.write(message.getBytes());
+        zos.closeEntry();
     }
 
 }

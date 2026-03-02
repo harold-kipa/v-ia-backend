@@ -6,14 +6,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import com.v_ia_backend.kipa.dto.request.LoginRequest;
+import com.v_ia_backend.kipa.dto.request.MovementFilesRequest;
 import com.v_ia_backend.kipa.dto.request.MovementFilterRequest;
 import com.v_ia_backend.kipa.entity.Movements;
 // import com.v_ia_backend.kipa.dto.request.MovementsRequest; 
@@ -31,10 +34,16 @@ public class MovementsController {
     public MovementsController(MovementServiceImpl movementService) {
         this.movementService = movementService;
     }
+    // @PreAuthorize("isAuthenticated()")
+    @PostMapping(value = "/get/files")
+    public ResponseEntity<StreamingResponseBody> getAllFilesByMovementsController(
+            @RequestBody List<MovementFilesRequest> movementIds) {
+        StreamingResponseBody body = movementService.getAllFilesByMovements(movementIds);
 
-    @PostMapping("/get/files")
-    public ResponseEntity<Object> getAllFilesByMovementsController(@RequestBody List<Long> movementIds) {
-        return ResponseEntity.ok(movementService.getAllFilesByMovements(movementIds));
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"movements.zip\"")
+                .contentType(MediaType.parseMediaType("application/zip"))
+                .body(body);
     }
 
     @GetMapping("/get/{id}")

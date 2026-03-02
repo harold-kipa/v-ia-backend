@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -42,16 +43,14 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
-            .cors(Customizer.withDefaults()) // <-- Habilita CORS usando el bean CorsConfigurationSource
+            .cors(Customizer.withDefaults())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/movement/get/files").authenticated()
                 .anyRequest().authenticated()
             )
-            .exceptionHandling(e -> e
-                    .authenticationEntryPoint(jwtAuthenticationEntryPoint))
-            .sessionManagement(s -> s
-                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+            .exceptionHandling(e -> e.authenticationEntryPoint(jwtAuthenticationEntryPoint));
         http.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
