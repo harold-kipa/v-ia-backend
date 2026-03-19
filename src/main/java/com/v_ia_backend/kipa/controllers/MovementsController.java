@@ -1,8 +1,13 @@
 package com.v_ia_backend.kipa.controllers;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import com.v_ia_backend.kipa.dto.request.LoginRequest;
+import com.v_ia_backend.kipa.dto.request.MovementFilesFinalRequest;
 import com.v_ia_backend.kipa.dto.request.MovementFilesRequest;
 import com.v_ia_backend.kipa.dto.request.MovementFilterRequest;
 import com.v_ia_backend.kipa.entity.Movements;
@@ -34,16 +40,18 @@ public class MovementsController {
     public MovementsController(MovementServiceImpl movementService) {
         this.movementService = movementService;
     }
-    // @PreAuthorize("isAuthenticated()")
-    @PostMapping(value = "/get/files")
-    public ResponseEntity<StreamingResponseBody> getAllFilesByMovementsController(
-            @RequestBody List<MovementFilesRequest> movementIds) {
-        StreamingResponseBody body = movementService.getAllFilesByMovements(movementIds);
+    @PostMapping("/get/files")
+    public ResponseEntity<Resource> downloadZip(@RequestBody MovementFilesFinalRequest req) throws IOException {
+
+        Path zipPath = movementService.buildZipToTempFile(req); // crea el zip en disco
+
+        FileSystemResource resource = new FileSystemResource(zipPath.toFile());
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"movements.zip\"")
-                .contentType(MediaType.parseMediaType("application/zip"))
-                .body(body);
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=archivos.zip")
+            .contentType(MediaType.parseMediaType("application/zip"))
+            .contentLength(Files.size(zipPath))
+            .body(resource);
     }
 
     @GetMapping("/get/{id}")

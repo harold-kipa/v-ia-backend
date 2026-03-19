@@ -47,5 +47,9 @@ public class HigherAccounts implements Serializable {
     @ManyToOne
     @JoinColumn(name = "higher_accounts_view_id")
     private HigherAccountsView higherAccountsViewId;
+
+    @ManyToOne
+    @JoinColumn(name = "arh_clasification_id")
+    private ArhClasification arhClasificationId;
     
 }

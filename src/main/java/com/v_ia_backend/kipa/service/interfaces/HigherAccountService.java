@@ -13,5 +13,7 @@ public interface HigherAccountService {
     List<HigherAccounts> getAllHigherAccounts();
     List<HigherAccountInterfase> getAllHigherAccountsCapex(String investmentTarget);
     public HigherAccounts getHigherAccountByHigherAccountsViewId(Long id);
+    public List<HigherAccounts> getAllHigherAccountByHigherAccountsViewIdBetwen(Long idInitial, Long idFInal);
+    public List<Long> getAllHigherAccountByarhClasificationId(Long id);
     public List<HigherAccounts> getAllHigherAccountByHigherAccountsViewId(Long id);
 }

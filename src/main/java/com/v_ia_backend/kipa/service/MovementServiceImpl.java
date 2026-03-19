@@ -347,8 +347,9 @@ public class MovementServiceImpl implements MovementService {
 
     Path zipPath = Files.createTempFile("movements_", ".zip");
     Set<String> usedNames = new HashSet<>();
+    Set<String> processedInSameFolder = new HashSet<>();
 
-    long total = 0, ok = 0, err = 0;
+    long total = 0, ok = 0, err = 0, skipped = 0;
 
     try (OutputStream fos = Files.newOutputStream(zipPath);
          BufferedOutputStream bos = new BufferedOutputStream(fos, 1024 * 1024);
@@ -364,18 +365,28 @@ public class MovementServiceImpl implements MovementService {
                 if (rel.getPaymentsAccountsRelationId_Id() == null) continue;
 
                 List<FilesOp> filesOp =
-                    filesOpServiceImpl.getFilesOpByPaymentsAccountsRelationId(rel.getPaymentsAccountsRelationId_Id());
+                    filesOpServiceImpl.getFilesOpByPaymentsAccountsRelationId(
+                        rel.getPaymentsAccountsRelationId_Id()
+                    );
 
                 for (FilesOp item : filesOp) {
                     total++;
 
-                    if (item == null) { err++; continue; }
+                    if (item == null) {
+                        err++;
+                        continue;
+                    }
 
                     String url = item.getFileUrl();
-                    if (url == null || url.isBlank()) { err++; continue; }
+                    if (url == null || url.isBlank()) {
+                        err++;
+                        continue;
+                    }
 
                     String folder = sanitizeFolder(
-                        movement.getAccountNumberHomologated() == null ? "" : movement.getAccountNumberHomologated().toString()
+                        movement.getAccountNumberHomologated() == null
+                            ? ""
+                            : movement.getAccountNumberHomologated().toString()
                     );
 
                     String fileName = sanitizeFileName(item.getFileName());
@@ -383,6 +394,14 @@ public class MovementServiceImpl implements MovementService {
                     if (!fileName.toLowerCase().endsWith(".pdf")) fileName += ".pdf";
 
                     String entryNameBase = (StringUtils.hasText(folder) ? folder + "/" : "") + fileName;
+
+                    // Solo evita duplicados dentro de la misma carpeta
+                    String duplicateKey = entryNameBase + "|" + url.trim();
+                    if (!processedInSameFolder.add(duplicateKey)) {
+                        skipped++;
+                        continue;
+                    }
+
                     String entryName = dedupe(entryNameBase, usedNames);
 
                     try {
@@ -390,20 +409,30 @@ public class MovementServiceImpl implements MovementService {
                         ok++;
                     } catch (Exception e) {
                         err++;
-                        // aquí sí puedes escribir error.txt sin matar la respuesta
-                        safeAddErrorEntry(zos, entryName + ".error.txt",
-                            "Error descargando " + url + ": " + e.getClass().getSimpleName() + " - " + e.getMessage());
+                        safeAddErrorEntry(
+                            zos,
+                            entryName + ".error.txt",
+                            "Error descargando " + url + ": "
+                                + e.getClass().getSimpleName() + " - " + e.getMessage()
+                        );
                     }
                 }
             }
         }
 
-        // Manifest final (MUY útil)
-        safeAddErrorEntry(zos, "_manifest.txt",
-            "Total detectados: " + total + "\nOK: " + ok + "\nErrores: " + err + "\n");
+        safeAddErrorEntry(
+            zos,
+            "_manifest.txt",
+            "Total detectados: " + total + "\n"
+                + "OK: " + ok + "\n"
+                + "Errores: " + err + "\n"
+                + "Omitidos por duplicado en misma carpeta: " + skipped + "\n"
+        );
+
     } catch (Exception e) {
-        // si falla la construcción, borra el zip temp para no dejar basura
-        try { Files.deleteIfExists(zipPath); } catch (Exception ignored) {}
+        try {
+            Files.deleteIfExists(zipPath);
+        } catch (Exception ignored) {}
         throw e;
     }
 

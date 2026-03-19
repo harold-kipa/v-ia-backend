@@ -11,5 +11,7 @@ import com.v_ia_backend.kipa.interfase.HigherAccountInterfase;
 @Repository
 public interface HigherAccountsRepositoriy extends JpaRepository<HigherAccounts, Long> {
     List<HigherAccounts> findByHigherAccountsViewId_Id(Long higherAccountsViewId);
+    List<HigherAccounts> findByHigherAccountsViewId_IdBetween(Long higherAccountsIdInitial, Long higherAccountsIdFinal);
+    List<HigherAccounts> findByarhClasificationId_Id(Long higherAccountsViewId);
     List<HigherAccountInterfase> findByInvestmentTarget(String investmentTarget);
 }

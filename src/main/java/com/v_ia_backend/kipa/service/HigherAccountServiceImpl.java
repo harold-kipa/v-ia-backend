@@ -51,4 +51,17 @@ public class HigherAccountServiceImpl implements HigherAccountService {
     public List<HigherAccounts> getAllHigherAccountByHigherAccountsViewId(Long id) {
         return HigherAccountsRepositoriy.findByHigherAccountsViewId_Id(id);
     }
+
+    @Override
+    public List<HigherAccounts> getAllHigherAccountByHigherAccountsViewIdBetwen(Long idInitial, Long idFInal) {
+        return HigherAccountsRepositoriy.findByHigherAccountsViewId_IdBetween(idInitial, idFInal);
+    }
+
+    @Override
+    public List<Long> getAllHigherAccountByarhClasificationId(Long id) {
+        List<HigherAccounts> higherAccounts = HigherAccountsRepositoriy.findByarhClasificationId_Id(id);
+        return higherAccounts.stream()
+            .map(HigherAccounts::getId)
+            .toList();
+    }
 }

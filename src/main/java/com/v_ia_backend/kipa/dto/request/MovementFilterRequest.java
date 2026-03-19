@@ -25,4 +25,6 @@ public class MovementFilterRequest {
 
     private Long documentNumber;
 
+    private Long arhClasification;
+
 }

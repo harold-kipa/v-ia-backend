@@ -3,6 +3,7 @@ package com.v_ia_backend.kipa.service.interfaces;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import com.v_ia_backend.kipa.dto.request.MovementFilesFinalRequest;
 import com.v_ia_backend.kipa.dto.request.MovementFilesRequest;
 import com.v_ia_backend.kipa.dto.request.MovementFilterRequest;
 import com.v_ia_backend.kipa.dto.response.CapexResponse;
@@ -27,5 +28,5 @@ public interface MovementService {
     List<CapexResponse> getMovementByCapex(Long year);
     List<CapexResponse> getMovementByOpex(Long year);
     BigDecimal stringToLong(String raw);
-    StreamingResponseBody getAllFilesByMovements(List<MovementFilesRequest> movementIds);
+    // StreamingResponseBody getAllFilesByMovements(MovementFilesFinalRequest movementsFinalRequest);
 }
