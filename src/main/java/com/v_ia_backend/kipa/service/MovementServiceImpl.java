@@ -1,7 +1,9 @@
 package com.v_ia_backend.kipa.service;
 
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URL;
@@ -22,14 +24,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.springframework.stereotype.Service;
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import org.springframework.util.StringUtils;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpHeaders;
 
+import com.v_ia_backend.kipa.dto.request.MovementFilesFinalRequest;
 import com.v_ia_backend.kipa.dto.request.MovementFilesRequest;
 import com.v_ia_backend.kipa.dto.request.MovementFilterRequest;
 import com.v_ia_backend.kipa.dto.response.CapexResponse;
@@ -37,7 +38,6 @@ import com.v_ia_backend.kipa.dto.response.MovementListResponse;
 import com.v_ia_backend.kipa.dto.response.MovementResponse;
 import com.v_ia_backend.kipa.dto.response.MovementTableResponse;
 import com.v_ia_backend.kipa.dto.response.MovementTotalsResponse;
-import com.v_ia_backend.kipa.dto.response.OpexResponse;
 import com.v_ia_backend.kipa.entity.FilesOp;
 import com.v_ia_backend.kipa.entity.HigherAccounts;
 import com.v_ia_backend.kipa.entity.HigherAccountsView;
@@ -91,7 +91,10 @@ public class MovementServiceImpl implements MovementService {
         }
         Timestamp initialProjectDate = Timestamp.valueOf("2015-01-01 05:00:00");
 
-        if(movementFilterRequest.getInitialAccountId() != null && movementFilterRequest.getFinalAccountId() != null){
+        List<Long> higherAccounts = new ArrayList<>();
+
+        if((movementFilterRequest.getInitialAccountId() != null && movementFilterRequest.getFinalAccountId() != null)){
+            
             movementFilterRequest.setInitialAccountId(higherAccountServiceImpl.getHigherAccountByHigherAccountsViewId(movementFilterRequest.getInitialAccountId()).getId());
             List<HigherAccounts> finalAccounts = higherAccountServiceImpl.getAllHigherAccountByHigherAccountsViewId(movementFilterRequest.getFinalAccountId());
             if (finalAccounts.size() > 1){
@@ -99,13 +102,27 @@ public class MovementServiceImpl implements MovementService {
             } else {
                 movementFilterRequest.setFinalAccountId(finalAccounts.get(0).getId());
             }
+
+            // higherAccounts = higherAccountServiceImpl.getAllHigherAccountByHigherAccountsViewIdBetwen(movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId());
         }
 
         // if(movementFilterRequest.getInitialAccountId() > higherAcountChange && movementFilterRequest.getFinalAccountId() < higherAcountChange){
             
         // }
 
-        if(movementFilterRequest.getPaymentsAccountsRelationId() != null && movementFilterRequest.getInitialAccountId() != null && movementFilterRequest.getFinalAccountId() != null && movementFilterRequest.getStartDate() != null && movementFilterRequest.getEndDate() != null){
+        
+
+        if (movementFilterRequest.getArhClasification() != null){
+            higherAccounts = higherAccountServiceImpl.getAllHigherAccountByarhClasificationId(movementFilterRequest.getArhClasification());
+            if(movementFilterRequest.getStartDate() != null && movementFilterRequest.getEndDate() != null){
+                movements = MovementsRepositoriy.findMovementByMovementDateBetweenAndHigherAccountId_IdIn(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate(),higherAccounts);
+            }
+            else{
+                movements = MovementsRepositoriy.findByHigherAccountId_IdIn(higherAccounts);
+            }
+        }
+
+        else if(movementFilterRequest.getPaymentsAccountsRelationId() != null && movementFilterRequest.getInitialAccountId() != null && movementFilterRequest.getFinalAccountId() != null && movementFilterRequest.getStartDate() != null && movementFilterRequest.getEndDate() != null){
             List<PaymentsAccountsRelation> relations =
                 paymentsAccountsRelationServiceImpl
                     .getPaymentsAccountsRelationByConsecutiveNumber(
@@ -326,87 +343,111 @@ public class MovementServiceImpl implements MovementService {
         // }
         return capexResponseFinal;
     }
+    public Path buildZipToTempFile(MovementFilesFinalRequest movementsFinalRequest) throws IOException {
 
-    @Override
-    public StreamingResponseBody getAllFilesByMovements(List<MovementFilesRequest> movements) {
+    Path zipPath = Files.createTempFile("movements_", ".zip");
+    Set<String> usedNames = new HashSet<>();
 
-        return outputStream -> {
-            try (ZipOutputStream zos = new ZipOutputStream(outputStream)) {
+    long total = 0, ok = 0, err = 0;
 
-                Set<String> usedNames = new HashSet<>();
+    try (OutputStream fos = Files.newOutputStream(zipPath);
+         BufferedOutputStream bos = new BufferedOutputStream(fos, 1024 * 1024);
+         ZipOutputStream zos = new ZipOutputStream(bos)) {
 
-                for (MovementFilesRequest movement : movements) {
+        for (MovementFilesRequest movement : movementsFinalRequest.getData()) {
 
-                    // 1) Buscar relaciones por IDs
-                    List<MovementsFilesInterfase> rels =
-                            MovementsRepositoriy.findByIdIn(movement.getIds());
+            List<MovementsFilesInterfase> rels =
+                MovementsRepositoriy.findByIdIn(movement.getIds());
 
-                    for (MovementsFilesInterfase rel : rels) {
+            for (MovementsFilesInterfase rel : rels) {
 
-                        // 2) Traer archivos asociados
-                        if(rel.getPaymentsAccountsRelationId_Id() != null){
-                            List<FilesOp> filesOp =
-                                    filesOpServiceImpl.getFilesOpByPaymentsAccountsRelationId(rel.getPaymentsAccountsRelationId_Id());
-                            System.out.println(rel.getPaymentsAccountsRelationId_Id());
-                            // 3) Meter cada PDF al ZIP
-                            for (FilesOp item : filesOp) {
-                                if (item == null) continue;
+                if (rel.getPaymentsAccountsRelationId_Id() == null) continue;
 
-                                String url = item.getFileUrl();
-                                if (url == null || url.isBlank() || url.trim().isEmpty()) continue;
+                List<FilesOp> filesOp =
+                    filesOpServiceImpl.getFilesOpByPaymentsAccountsRelationId(rel.getPaymentsAccountsRelationId_Id());
 
-                                String folder = sanitizeFolder(movement.getAccountNumberHomologated() == null
-                                            ? ""
-                                            : movement.getAccountNumberHomologated().toString());
-                                String fileName = sanitizeFileName(item.getFileName());
+                for (FilesOp item : filesOp) {
+                    total++;
 
-                                if (!StringUtils.hasText(fileName)) fileName = "documento.pdf";
-                                if (!fileName.toLowerCase().endsWith(".pdf")) fileName += ".pdf";
+                    if (item == null) { err++; continue; }
 
-                                String entryNameBase = (StringUtils.hasText(folder) ? folder + "/" : "") + fileName;
-                                String entryName = dedupe(entryNameBase, usedNames);
+                    String url = item.getFileUrl();
+                    if (url == null || url.isBlank()) { err++; continue; }
 
-                                HttpRequest httpRequest = HttpRequest.newBuilder()
-                                        .uri(URI.create(url.trim()))
-                                        .timeout(Duration.ofSeconds(60))
-                                        .GET()
-                                        .build();
+                    String folder = sanitizeFolder(
+                        movement.getAccountNumberHomologated() == null ? "" : movement.getAccountNumberHomologated().toString()
+                    );
 
-                                System.out.println("Descargando " + url.trim() + " para incluir como " + entryName);
+                    String fileName = sanitizeFileName(item.getFileName());
+                    if (!StringUtils.hasText(fileName)) fileName = "documento.pdf";
+                    if (!fileName.toLowerCase().endsWith(".pdf")) fileName += ".pdf";
 
-                                try {
-                                    HttpResponse<InputStream> response =
-                                            httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofInputStream());
+                    String entryNameBase = (StringUtils.hasText(folder) ? folder + "/" : "") + fileName;
+                    String entryName = dedupe(entryNameBase, usedNames);
 
-                                    if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                                        addErrorEntry(zos, entryName + ".error.txt",
-                                                "No se pudo descargar: " + url + " (HTTP " + response.statusCode() + ")");
-                                        continue;
-                                    }
-
-                                    zos.putNextEntry(new ZipEntry(entryName));
-                                    try (InputStream in = response.body()) {
-                                        in.transferTo(zos);
-                                    }
-                                    zos.closeEntry();
-
-                                } catch (InterruptedException e) {
-                                    Thread.currentThread().interrupt();
-                                    addErrorEntry(zos, entryName + ".error.txt",
-                                            "Descarga interrumpida: " + url);
-                                } catch (Exception e) {
-                                    addErrorEntry(zos, entryName + ".error.txt",
-                                            "Error descargando " + url + ": " + e.getMessage());
-                                }
-                            }
-                        }
+                    try {
+                        downloadIntoZip(zos, entryName, url.trim());
+                        ok++;
+                    } catch (Exception e) {
+                        err++;
+                        // aquí sí puedes escribir error.txt sin matar la respuesta
+                        safeAddErrorEntry(zos, entryName + ".error.txt",
+                            "Error descargando " + url + ": " + e.getClass().getSimpleName() + " - " + e.getMessage());
                     }
                 }
-
-                zos.finish(); // opcional, el close lo hace igual
             }
-        };
+        }
+
+        // Manifest final (MUY útil)
+        safeAddErrorEntry(zos, "_manifest.txt",
+            "Total detectados: " + total + "\nOK: " + ok + "\nErrores: " + err + "\n");
+    } catch (Exception e) {
+        // si falla la construcción, borra el zip temp para no dejar basura
+        try { Files.deleteIfExists(zipPath); } catch (Exception ignored) {}
+        throw e;
     }
+
+    return zipPath;
+}
+
+    private void downloadIntoZip(ZipOutputStream zos, String entryName, String url) throws Exception {
+
+    HttpRequest httpRequest = HttpRequest.newBuilder()
+        .uri(URI.create(url))
+        .timeout(Duration.ofSeconds(600))
+        .GET()
+        .build();
+
+    HttpResponse<InputStream> response =
+        httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofInputStream());
+
+    if (response.statusCode() < 200 || response.statusCode() >= 300) {
+        throw new IOException("HTTP " + response.statusCode());
+    }
+
+    zos.putNextEntry(new ZipEntry(entryName));
+    try (InputStream in = response.body()) {
+        // buffer manual para rendimiento
+        byte[] buffer = new byte[1024 * 64];
+        int read;
+        while ((read = in.read(buffer)) != -1) {
+            zos.write(buffer, 0, read);
+        }
+    } finally {
+        try { zos.closeEntry(); } catch (Exception ignored) {}
+    }
+}
+
+private void safeAddErrorEntry(ZipOutputStream zos, String name, String message) {
+    try {
+        zos.putNextEntry(new ZipEntry(name));
+        zos.write(message.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    } catch (Exception ignored) {
+        // si el zip ya está corrupto, no hacemos nada
+    } finally {
+        try { zos.closeEntry(); } catch (Exception ignored) {}
+    }
+}
     @Override
     public MovementResponse getMovementById(Long id) {
         Movements movements = MovementsRepositoriy.findById(id).orElse(null);
@@ -507,7 +548,6 @@ public class MovementServiceImpl implements MovementService {
     }
 
     public BigDecimal stringToLong(String raw){
-        java.math.BigDecimal amount = java.math.BigDecimal.ZERO;
         if(raw != null && !raw.isBlank()){
             // Normalize: remove grouping separators and trim
             String cleaned = raw.replaceAll("[,\\s]", "");
@@ -737,15 +777,6 @@ public class MovementServiceImpl implements MovementService {
         return fileName.replaceAll("[^a-zA-Z0-9._\\-]", "").trim();
     }
 
-    private String guessFileNameFromUrl(String url) {
-        if (url == null || url.isBlank()) {
-            return "file";
-        }
-        String[] parts = url.split("/");
-        String fileName = parts[parts.length - 1];
-        return fileName.isBlank() ? "file" : fileName;
-    }
-
     private String dedupe(String entryName, Set<String> usedNames) {
         String result = entryName;
         int counter = 1;
@@ -764,10 +795,21 @@ public class MovementServiceImpl implements MovementService {
         return result;
     }
 
-    private void addErrorEntry(ZipOutputStream zos, String entryName, String message) throws IOException {
-        zos.putNextEntry(new ZipEntry(entryName));
-        zos.write(message.getBytes());
-        zos.closeEntry();
-    }
+    // private boolean safeAddErrorEntry(ZipOutputStream zos, String name, String message) {
+    // try {
+    //     zos.putNextEntry(new ZipEntry(name));
+    //     zos.write(message.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    //     zos.closeEntry();
+    //     return true;
+    // } catch (org.springframework.web.context.request.async.AsyncRequestNotUsableException ex) {
+    //     // response ya no sirve -> cortar
+    //     return false;
+    // } catch (java.io.IOException ex) {
+    //     // típico: Broken pipe / Connection reset
+    //     return false;
+    // } catch (Exception ex) {
+    //     return false;
+    // }
+// }
 
 }
