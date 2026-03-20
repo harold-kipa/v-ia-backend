@@ -130,7 +130,9 @@ public class UserServiceImpl implements UserDetailsService {
 
             user.setIdentificationNumber(request.getIdentificationNumber());
             user.setEmail(request.getEmail());
-            user.setPassword(bcryptEncoder.encode(request.getPassword()));
+            if (request.getPassword() != ""){
+                user.setPassword(bcryptEncoder.encode(request.getPassword()));
+            }
             user.setRoles(roleService.getRoleById(request.getRoleId()));
             user.setStatus(statusUserService.getStatusById(active));
             // user.setPushToken(request.getPushToken());
