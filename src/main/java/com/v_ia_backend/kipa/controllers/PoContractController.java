@@ -29,4 +29,8 @@ public class PoContractController {
     public ResponseEntity<Object> getAllPoContractController() {
         return ResponseEntity.ok(poContractService.getAllPoContract());
     }
+    @GetMapping("/get/movement/{id}")
+    public ResponseEntity<Object> getOcciredByMovementIdController(@PathVariable Long id) {
+        return ResponseEntity.ok(poContractService.getPoContractByMovementId(id));
+    }
 }

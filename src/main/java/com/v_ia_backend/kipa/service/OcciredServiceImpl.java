@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.List;
-
+import java.util.ArrayList;
 import java.util.Base64;
 
 
@@ -33,17 +33,25 @@ public class OcciredServiceImpl implements OcciredService {
     }
     @Override
     public List<Occired> getOcciredByMovementId(Long id) {
-        Occired occired = filesOpRepositoriy.findByMovementId_Id(id).get(0);
-        String url = occired.getFileId().getFileUrl();
+        List<Occired> occiredList = filesOpRepositoriy.findByMovementId_Id(id);
 
-        try (InputStream is = new URL(url.trim()).openStream()) {
-            byte[] pdfBytes = is.readAllBytes();
-            occired.getFileId().setFileUrl(Base64.getEncoder().encodeToString(pdfBytes));
-
-        } catch (IOException e) {
+        if (occiredList == null || occiredList.isEmpty()) {
+            return new ArrayList<>();
         }
-        List<Occired> occiredList = new java.util.ArrayList<>();
-        occiredList.add(occired);
+
+        for (Occired occired : occiredList) {
+            if (occired.getFileId() != null && occired.getFileId().getFileUrl() != null) {
+                String url = occired.getFileId().getFileUrl();
+
+                try (InputStream is = new URL(url.trim()).openStream()) {
+                    byte[] pdfBytes = is.readAllBytes();
+                    occired.getFileId().setFileUrl(Base64.getEncoder().encodeToString(pdfBytes));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
         return occiredList;
     }
 }

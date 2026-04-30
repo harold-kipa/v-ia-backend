@@ -12,9 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.v_ia_backend.kipa.dto.request.ChatHistoryRequest;
-import com.v_ia_backend.kipa.dto.request.UsersRequest;
 import com.v_ia_backend.kipa.entity.ChatHistory;
-import com.v_ia_backend.kipa.entity.Users;
 import com.v_ia_backend.kipa.service.ChatHistoryServiceImpl;
 
 @RestController

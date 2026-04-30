@@ -11,6 +11,7 @@ import com.v_ia_backend.kipa.interfase.PoContractInterfase;
 @Repository
 public interface PoContractRepositoriy extends JpaRepository<PoContract, Long> {
     List<PoContractInterfase> findAllProjectedBy();
+    List<PoContract> findByMovementId_Id(Long movementId);
     // List<PoContractInterfase> findByMovementId(Long movementId);
     // <T> List<T> findAll(Class<T> type);
 }

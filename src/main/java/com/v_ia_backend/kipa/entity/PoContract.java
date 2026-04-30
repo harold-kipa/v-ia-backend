@@ -19,6 +19,9 @@ public class PoContract implements Serializable {
     @Column(name = "po_contract_id")
     private Long id;
 
+    @Column(name = "consecutive")
+    private String consecutive;
+
     @Column(name = "year")
     private Long year;
 
@@ -51,4 +54,7 @@ public class PoContract implements Serializable {
     @JoinColumn(name = "auxiliary_id")
     private Auxiliaries auxiliaryId;
 
+    @ManyToOne
+    @JoinColumn(name = "movement_id")
+    private Movements movementId;
 }

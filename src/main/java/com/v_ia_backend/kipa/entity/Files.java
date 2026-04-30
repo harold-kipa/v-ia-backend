@@ -12,7 +12,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @Entity
 @Getter
 @Setter
-@Table(name = "tbl_files")
+@Table(name = "tbl_files_oc_c")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Files implements Serializable {
     @Id

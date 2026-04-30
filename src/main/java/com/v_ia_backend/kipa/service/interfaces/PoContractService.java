@@ -11,4 +11,5 @@ import java.util.List;
 public interface PoContractService {
     PoContract getPoContractById(Long id);
     List<PoContractInterfase> getAllPoContract();
+    List<PoContract> getPoContractByMovementId(Long id);
 }
