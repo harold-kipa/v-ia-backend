@@ -34,6 +34,11 @@ public class PoContractServiceImpl implements PoContractService {
     }
 
     @Override
+    public List<PoContract> getPoContractByConsecutiveAndYear(String Consecutive, Long Year) {
+        return poContractRepositoriy.findByConsecutiveAndYear(Consecutive, Year);
+    }
+
+    @Override
     public List<PoContract> getPoContractByMovementId(Long id) {
         List<PoContract> poContractList = poContractRepositoriy.findByMovementId_Id(id);
 
@@ -43,7 +48,8 @@ public class PoContractServiceImpl implements PoContractService {
 
         for (PoContract poContract : poContractList) {
             if (poContract.getFileId() != null && poContract.getFileId().getFileUrl() != null) {
-                String url = poContract.getFileId().getFileUrl();
+                String url = poContract.getFileId().getFileUrl().trim()
+                                  .replace(" ", "%20");
 
                 try (InputStream is = new URL(url.trim()).openStream()) {
                     byte[] pdfBytes = is.readAllBytes();

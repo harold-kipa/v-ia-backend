@@ -12,4 +12,5 @@ public interface PoContractService {
     PoContract getPoContractById(Long id);
     List<PoContractInterfase> getAllPoContract();
     List<PoContract> getPoContractByMovementId(Long id);
+    List<PoContract> getPoContractByConsecutiveAndYear(String Consecutive, Long Year);
 }

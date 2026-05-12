@@ -23,7 +23,7 @@ public class Auxiliaries implements Serializable {
     private Long auxiliaryNumber;
 
     @Column(name = "auxiliary_nit")
-    private Long auxiliaryNit;
+    private String auxiliaryNit;
 
     @Column(name = "auxiliary_description")
     private String auxiliaryDescription;

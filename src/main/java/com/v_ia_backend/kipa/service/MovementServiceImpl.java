@@ -43,6 +43,7 @@ import com.v_ia_backend.kipa.entity.HigherAccounts;
 import com.v_ia_backend.kipa.entity.HigherAccountsView;
 import com.v_ia_backend.kipa.entity.Movements;
 import com.v_ia_backend.kipa.entity.PaymentsAccountsRelation;
+import com.v_ia_backend.kipa.entity.PoContract;
 import com.v_ia_backend.kipa.interfase.HigherAccountInterfase;
 import com.v_ia_backend.kipa.interfase.MovementsFilesInterfase;
 import com.v_ia_backend.kipa.interfase.MovementsInterfase;
@@ -55,12 +56,14 @@ import com.v_ia_backend.kipa.service.interfaces.MovementService;
 public class MovementServiceImpl implements MovementService {
     private final MovementsRepositoriy MovementsRepositoriy;
     private final PaymentsAccountsRelationServiceImpl paymentsAccountsRelationServiceImpl;
+    private final PoContractServiceImpl poContractServiceImpl;
     private final HigherAccountServiceImpl higherAccountServiceImpl;
     private final FilesOpServiceImpl filesOpServiceImpl;
     public record MovementGroupKey(Long higherAccountId, String movementDescription) {}
-    public MovementServiceImpl(MovementsRepositoriy MovementsRepositoriy, PaymentsAccountsRelationServiceImpl paymentsAccountsRelationServiceImpl, HigherAccountServiceImpl higherAccountServiceImpl, FilesOpServiceImpl filesOpServiceImpl) {
+    public MovementServiceImpl(MovementsRepositoriy MovementsRepositoriy, PaymentsAccountsRelationServiceImpl paymentsAccountsRelationServiceImpl, PoContractServiceImpl poContractServiceImpl, HigherAccountServiceImpl higherAccountServiceImpl, FilesOpServiceImpl filesOpServiceImpl) {
         this.MovementsRepositoriy = MovementsRepositoriy;
         this.paymentsAccountsRelationServiceImpl = paymentsAccountsRelationServiceImpl;
+        this.poContractServiceImpl = poContractServiceImpl;
         this.higherAccountServiceImpl = higherAccountServiceImpl;
         this.filesOpServiceImpl = filesOpServiceImpl;
     }
@@ -143,6 +146,21 @@ public class MovementServiceImpl implements MovementService {
             movements = MovementsRepositoriy
                 .findDistinctByPoContractId_Id(movementFilterRequest.getPoContractId());
 
+        }
+        else if (movementFilterRequest.getPoContractId() != null) {
+
+            List<PoContract> relations =
+                poContractServiceImpl
+                    .getPoContractByConsecutiveAndYear(
+                        movementFilterRequest.getPoContractId().toString()
+                    );
+
+            for (PoContract par : relations) {
+                movements.addAll(
+                    MovementsRepositoriy
+                        .findDistinctByPoContractId_Id(par.getId())
+                );
+            }
         }
         else if (movementFilterRequest.getPaymentsAccountsRelationId() != null) {
 
