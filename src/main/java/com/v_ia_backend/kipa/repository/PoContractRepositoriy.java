@@ -3,6 +3,7 @@ package com.v_ia_backend.kipa.repository;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import com.v_ia_backend.kipa.entity.PoContract;
@@ -10,7 +11,8 @@ import com.v_ia_backend.kipa.interfase.PoContractInterfase;
 
 @Repository
 public interface PoContractRepositoriy extends JpaRepository<PoContract, Long> {
-    List<PoContractInterfase> findAllProjectedBy();
+    @Query("SELECT DISTINCT p FROM PoContract p")
+    List<PoContractInterfase> findAllDistinct();
     List<PoContract> findByMovementId_Id(Long movementId);
     List<PoContract> findByConsecutiveAndYear(String Consecutive, Long Year);
     // List<PoContractInterfase> findByMovementId(Long movementId);

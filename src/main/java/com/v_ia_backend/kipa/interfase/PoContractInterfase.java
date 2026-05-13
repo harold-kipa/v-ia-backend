@@ -10,6 +10,6 @@ import com.v_ia_backend.kipa.entity.ProductType;
 public interface PoContractInterfase {
     Long getId();
     Long getYear();
-    Files getFileId();
-    ProductType getProductTypeId();
+    String getConsecutive();
+    Long getProductTypeId_Id();
 }

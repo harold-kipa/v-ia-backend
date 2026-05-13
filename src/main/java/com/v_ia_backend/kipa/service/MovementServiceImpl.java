@@ -141,18 +141,18 @@ public class MovementServiceImpl implements MovementService {
             // movements = MovementsRepositoriy.findByMovementDateBetweenAndHigherAccountId_IdBetweenAndPaymentsAccountsRelationId_Id(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate(), movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId(), movementFilterRequest.getPoContractId());
         }
         
-        else if (movementFilterRequest.getPoContractId() != null) {
+        // else if (movementFilterRequest.getPoContractId() != null) {
 
-            movements = MovementsRepositoriy
-                .findDistinctByPoContractId_Id(movementFilterRequest.getPoContractId());
+        //     movements = MovementsRepositoriy
+        //         .findDistinctByPoContractId_Id(movementFilterRequest.getPoContractId());
 
-        }
+        // }
         else if (movementFilterRequest.getPoContractId() != null) {
 
             List<PoContract> relations =
                 poContractServiceImpl
                     .getPoContractByConsecutiveAndYear(
-                        movementFilterRequest.getPoContractId().toString()
+                        movementFilterRequest.getPoContractId()
                     );
 
             for (PoContract par : relations) {

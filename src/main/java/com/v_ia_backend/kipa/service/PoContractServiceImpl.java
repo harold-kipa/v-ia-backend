@@ -24,7 +24,7 @@ public class PoContractServiceImpl implements PoContractService {
 
     @Override
     public List<PoContractInterfase> getAllPoContract() {
-        List<PoContractInterfase> poContractList = poContractRepositoriy.findAllProjectedBy();
+        List<PoContractInterfase> poContractList = poContractRepositoriy.findAllDistinct();
         return poContractList;
     }
 
@@ -34,8 +34,9 @@ public class PoContractServiceImpl implements PoContractService {
     }
 
     @Override
-    public List<PoContract> getPoContractByConsecutiveAndYear(String Consecutive, Long Year) {
-        return poContractRepositoriy.findByConsecutiveAndYear(Consecutive, Year);
+    public List<PoContract> getPoContractByConsecutiveAndYear(Long id) {
+        PoContract poContract = this.getPoContractById(id);
+        return poContractRepositoriy.findByConsecutiveAndYear(poContract.getConsecutive(), poContract.getYear());
     }
 
     @Override
