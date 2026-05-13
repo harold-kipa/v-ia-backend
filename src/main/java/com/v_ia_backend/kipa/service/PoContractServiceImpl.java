@@ -24,7 +24,7 @@ public class PoContractServiceImpl implements PoContractService {
 
     @Override
     public List<PoContractInterfase> getAllPoContract() {
-        List<PoContractInterfase> poContractList = poContractRepositoriy.findAllDistinct();
+        List<PoContractInterfase> poContractList = poContractRepositoriy.findAllProjectedBy();
         return poContractList;
     }
 

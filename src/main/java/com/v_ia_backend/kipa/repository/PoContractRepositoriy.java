@@ -11,8 +11,8 @@ import com.v_ia_backend.kipa.interfase.PoContractInterfase;
 
 @Repository
 public interface PoContractRepositoriy extends JpaRepository<PoContract, Long> {
-    @Query("SELECT DISTINCT p FROM PoContract p")
-    List<PoContractInterfase> findAllDistinct();
+    
+    List<PoContractInterfase> findAllProjectedBy();
     List<PoContract> findByMovementId_Id(Long movementId);
     List<PoContract> findByConsecutiveAndYear(String Consecutive, Long Year);
     // List<PoContractInterfase> findByMovementId(Long movementId);
