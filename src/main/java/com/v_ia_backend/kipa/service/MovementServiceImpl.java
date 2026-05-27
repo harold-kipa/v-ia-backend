@@ -24,7 +24,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-import java.nio.file.Files;
+// import java.nio.file.Files;
 import java.nio.file.Path;
 
 import org.springframework.stereotype.Service;
@@ -38,16 +38,21 @@ import com.v_ia_backend.kipa.dto.response.MovementListResponse;
 import com.v_ia_backend.kipa.dto.response.MovementResponse;
 import com.v_ia_backend.kipa.dto.response.MovementTableResponse;
 import com.v_ia_backend.kipa.dto.response.MovementTotalsResponse;
+import com.v_ia_backend.kipa.entity.Files;
+import com.v_ia_backend.kipa.entity.FilesOccired;
 import com.v_ia_backend.kipa.entity.FilesOp;
 import com.v_ia_backend.kipa.entity.HigherAccounts;
 import com.v_ia_backend.kipa.entity.HigherAccountsView;
 import com.v_ia_backend.kipa.entity.Movements;
 import com.v_ia_backend.kipa.entity.PaymentsAccountsRelation;
-import com.v_ia_backend.kipa.entity.PoContract;
 import com.v_ia_backend.kipa.interfase.HigherAccountInterfase;
 import com.v_ia_backend.kipa.interfase.MovementsFilesInterfase;
 import com.v_ia_backend.kipa.interfase.MovementsInterfase;
 import com.v_ia_backend.kipa.interfase.MovementsYearInterfase;
+import com.v_ia_backend.kipa.interfase.OcciredFileInterfase;
+import com.v_ia_backend.kipa.interfase.PaymentsAccountsRelationFilterInterfase;
+import com.v_ia_backend.kipa.interfase.PoContractFileInterfase;
+import com.v_ia_backend.kipa.interfase.PoContractFilterInterfase;
 import com.v_ia_backend.kipa.repository.MovementsRepositoriy;
 import com.v_ia_backend.kipa.service.interfaces.MovementService;
 
@@ -57,13 +62,16 @@ public class MovementServiceImpl implements MovementService {
     private final MovementsRepositoriy MovementsRepositoriy;
     private final PaymentsAccountsRelationServiceImpl paymentsAccountsRelationServiceImpl;
     private final PoContractServiceImpl poContractServiceImpl;
+    private final OcciredServiceImpl occiredServiceImpl;
+    
     private final HigherAccountServiceImpl higherAccountServiceImpl;
     private final FilesOpServiceImpl filesOpServiceImpl;
     public record MovementGroupKey(Long higherAccountId, String movementDescription) {}
-    public MovementServiceImpl(MovementsRepositoriy MovementsRepositoriy, PaymentsAccountsRelationServiceImpl paymentsAccountsRelationServiceImpl, PoContractServiceImpl poContractServiceImpl, HigherAccountServiceImpl higherAccountServiceImpl, FilesOpServiceImpl filesOpServiceImpl) {
+    public MovementServiceImpl(MovementsRepositoriy MovementsRepositoriy, PaymentsAccountsRelationServiceImpl paymentsAccountsRelationServiceImpl, OcciredServiceImpl occiredServiceImpl, PoContractServiceImpl poContractServiceImpl, HigherAccountServiceImpl higherAccountServiceImpl, FilesOpServiceImpl filesOpServiceImpl) {
         this.MovementsRepositoriy = MovementsRepositoriy;
         this.paymentsAccountsRelationServiceImpl = paymentsAccountsRelationServiceImpl;
         this.poContractServiceImpl = poContractServiceImpl;
+        this.occiredServiceImpl = occiredServiceImpl;
         this.higherAccountServiceImpl = higherAccountServiceImpl;
         this.filesOpServiceImpl = filesOpServiceImpl;
     }
@@ -149,28 +157,31 @@ public class MovementServiceImpl implements MovementService {
         // }
         else if (movementFilterRequest.getPoContractId() != null) {
 
-            List<PoContract> relations =
-                poContractServiceImpl
-                    .getPoContractByConsecutiveAndYear(
-                        movementFilterRequest.getPoContractId()
-                    );
+            List<PoContractFilterInterfase> relations =
+                poContractServiceImpl.getPoContractByConsecutiveAndYear(
+                    movementFilterRequest.getPoContractId()
+                );
 
-            for (PoContract par : relations) {
+            for (PoContractFilterInterfase par : relations) {
+
+                if (par == null || par.getMovementId_Id() == null) {
+                    continue;
+                }
+
                 movements.addAll(
-                    MovementsRepositoriy
-                        .findDistinctByPoContractId_Id(par.getId())
+                    MovementsRepositoriy.findDistinctById(par.getMovementId_Id())
                 );
             }
         }
         else if (movementFilterRequest.getPaymentsAccountsRelationId() != null) {
 
-            List<PaymentsAccountsRelation> relations =
+            List<PaymentsAccountsRelationFilterInterfase> relations =
                 paymentsAccountsRelationServiceImpl
-                    .getPaymentsAccountsRelationByConsecutiveNumber(
+                    .getPaymentsAccountsRelationFilterByConsecutiveNumber(
                         movementFilterRequest.getPaymentsAccountsRelationId().toString()
                     );
 
-            for (PaymentsAccountsRelation par : relations) {
+            for (PaymentsAccountsRelationFilterInterfase par : relations) {
                 movements.addAll(
                     MovementsRepositoriy
                         .findDistinctByPaymentsAccountsRelationId_Id(par.getId())
@@ -263,7 +274,10 @@ public class MovementServiceImpl implements MovementService {
             System.out.println(movementBeforeCount.size());
             
             List<Long> cuentasUnicasBefore = movementsBefore.stream()
-                    .map(m -> m.getHigherAccountId().getHigherAccountsViewId().getId())   // <- Obtienes el Long
+                    .filter(m -> m.getHigherAccountId() != null)
+                    .filter(m -> m.getHigherAccountId().getHigherAccountsViewId() != null)
+                    .filter(m -> m.getHigherAccountId().getHigherAccountsViewId().getId() != null)
+                    .map(m -> m.getHigherAccountId().getHigherAccountsViewId().getId())
                     .distinct()
                     .collect(Collectors.toList());
     
@@ -363,13 +377,13 @@ public class MovementServiceImpl implements MovementService {
     }
     public Path buildZipToTempFile(MovementFilesFinalRequest movementsFinalRequest) throws IOException {
 
-    Path zipPath = Files.createTempFile("movements_", ".zip");
+    Path zipPath = java.nio.file.Files.createTempFile("movements_", ".zip");
     Set<String> usedNames = new HashSet<>();
     Set<String> processedInSameFolder = new HashSet<>();
 
     long total = 0, ok = 0, err = 0, skipped = 0;
 
-    try (OutputStream fos = Files.newOutputStream(zipPath);
+    try (OutputStream fos = java.nio.file.Files.newOutputStream(zipPath);
          BufferedOutputStream bos = new BufferedOutputStream(fos, 1024 * 1024);
          ZipOutputStream zos = new ZipOutputStream(bos)) {
 
@@ -377,51 +391,165 @@ public class MovementServiceImpl implements MovementService {
 
             List<MovementsFilesInterfase> rels =
                 MovementsRepositoriy.findByIdIn(movement.getIds());
+            
+            List<PoContractFileInterfase> PoContractFiles =
+                poContractServiceImpl.getPoContractFileByMovementIdIn(movement.getIds());
 
-            for (MovementsFilesInterfase rel : rels) {
+            List<OcciredFileInterfase> OcciredFiles =
+                occiredServiceImpl.getOcciredFileByMovementIdIn(movement.getIds());
+                
+            if(movementsFinalRequest.getSelection().contains("OP")){
 
-                if (rel.getPaymentsAccountsRelationId_Id() == null) continue;
-
-                List<FilesOp> filesOp =
-                    filesOpServiceImpl.getFilesOpByPaymentsAccountsRelationId(
-                        rel.getPaymentsAccountsRelationId_Id()
-                    );
-
-                for (FilesOp item : filesOp) {
+                for (MovementsFilesInterfase rel : rels) {
+    
+                    if (rel.getPaymentsAccountsRelationId_Id() == null) continue;
+    
+                    List<FilesOp> filesOp =
+                        filesOpServiceImpl.getFilesOpByPaymentsAccountsRelationId(
+                            rel.getPaymentsAccountsRelationId_Id()
+                        );
+    
+                    for (FilesOp item : filesOp) {
+                        total++;
+    
+                        if (item == null) {
+                            err++;
+                            continue;
+                        }
+    
+                        String url = item.getFileUrl();
+                        if (url == null || url.isBlank()) {
+                            err++;
+                            continue;
+                        }
+    
+                        String folder = sanitizeFolder(
+                            movement.getAccountNumberHomologated() == null
+                                ? ""
+                                : movement.getAccountNumberHomologated().toString()
+                        );
+    
+                        String fileName = sanitizeFileName(item.getFileName());
+                        if (!StringUtils.hasText(fileName)) fileName = "documento.pdf";
+                        if (!fileName.toLowerCase().endsWith(".pdf")) fileName += ".pdf";
+    
+                        String entryNameBase = (StringUtils.hasText(folder) ? folder + "/" : "") + fileName;
+    
+                        // Solo evita duplicados dentro de la misma carpeta
+                        String duplicateKey = entryNameBase + "|" + url.trim();
+                        if (!processedInSameFolder.add(duplicateKey)) {
+                            skipped++;
+                            continue;
+                        }
+    
+                        String entryName = dedupe(entryNameBase, usedNames);
+    
+                        try {
+                            downloadIntoZip(zos, entryName, url.trim());
+                            ok++;
+                        } catch (Exception e) {
+                            err++;
+                            safeAddErrorEntry(
+                                zos,
+                                entryName + ".error.txt",
+                                "Error descargando " + url + ": "
+                                    + e.getClass().getSimpleName() + " - " + e.getMessage()
+                            );
+                        }
+                    }
+                }
+            }
+            if(movementsFinalRequest.getSelection().contains("OC")){
+                for (PoContractFileInterfase PoContractFile : PoContractFiles) {
+                    if (PoContractFile == null) continue;
+                    Files item = PoContractFile.getFileId();
                     total++;
-
+    
                     if (item == null) {
                         err++;
                         continue;
                     }
-
+    
                     String url = item.getFileUrl();
                     if (url == null || url.isBlank()) {
                         err++;
                         continue;
                     }
-
+    
                     String folder = sanitizeFolder(
                         movement.getAccountNumberHomologated() == null
                             ? ""
                             : movement.getAccountNumberHomologated().toString()
                     );
-
+    
                     String fileName = sanitizeFileName(item.getFileName());
                     if (!StringUtils.hasText(fileName)) fileName = "documento.pdf";
                     if (!fileName.toLowerCase().endsWith(".pdf")) fileName += ".pdf";
-
+    
                     String entryNameBase = (StringUtils.hasText(folder) ? folder + "/" : "") + fileName;
-
+    
                     // Solo evita duplicados dentro de la misma carpeta
                     String duplicateKey = entryNameBase + "|" + url.trim();
                     if (!processedInSameFolder.add(duplicateKey)) {
                         skipped++;
                         continue;
                     }
-
+    
                     String entryName = dedupe(entryNameBase, usedNames);
+    
+                    try {
+                        downloadIntoZip(zos, entryName, url.trim());
+                        ok++;
+                    } catch (Exception e) {
+                        err++;
+                        safeAddErrorEntry(
+                            zos,
+                            entryName + ".error.txt",
+                            "Error descargando " + url + ": "
+                                + e.getClass().getSimpleName() + " - " + e.getMessage()
+                        );
+                    }
+                }
+            }
 
+            if(movementsFinalRequest.getSelection().contains("CONTRACT")){
+                for (OcciredFileInterfase OcciredFile : OcciredFiles) {
+                    if (OcciredFile == null) continue;
+                    FilesOccired item = OcciredFile.getFileId();
+                    total++;
+    
+                    if (item == null) {
+                        err++;
+                        continue;
+                    }
+    
+                    String url = item.getFileUrl();
+                    if (url == null || url.isBlank()) {
+                        err++;
+                        continue;
+                    }
+    
+                    String folder = sanitizeFolder(
+                        movement.getAccountNumberHomologated() == null
+                            ? ""
+                            : movement.getAccountNumberHomologated().toString()
+                    );
+    
+                    String fileName = sanitizeFileName(item.getFileName());
+                    if (!StringUtils.hasText(fileName)) fileName = "documento.pdf";
+                    if (!fileName.toLowerCase().endsWith(".pdf")) fileName += ".pdf";
+    
+                    String entryNameBase = (StringUtils.hasText(folder) ? folder + "/" : "") + fileName;
+    
+                    // Solo evita duplicados dentro de la misma carpeta
+                    String duplicateKey = entryNameBase + "|" + url.trim();
+                    if (!processedInSameFolder.add(duplicateKey)) {
+                        skipped++;
+                        continue;
+                    }
+    
+                    String entryName = dedupe(entryNameBase, usedNames);
+    
                     try {
                         downloadIntoZip(zos, entryName, url.trim());
                         ok++;
@@ -449,7 +577,7 @@ public class MovementServiceImpl implements MovementService {
 
     } catch (Exception e) {
         try {
-            Files.deleteIfExists(zipPath);
+            java.nio.file.Files.deleteIfExists(zipPath);
         } catch (Exception ignored) {}
         throw e;
     }
@@ -500,7 +628,7 @@ private void safeAddErrorEntry(ZipOutputStream zos, String name, String message)
         Movements movements = MovementsRepositoriy.findById(id).orElse(null);
         MovementResponse response = new MovementResponse();
         response.setMovements(movements);
-        if (movements.getPoContractId() == null || movements.getPoContractId().getFileId() == null ) {
+        // if (movements.getPoContractId() == null || movements.getPoContractId().getFileId() == null ) {
             List<FilesOp> filesOp = filesOpServiceImpl.getFilesOpByPaymentsAccountsRelationId(response.getMovements().getPaymentsAccountsRelationId().getId());
             List<FilesOp> filesOpFinal = new java.util.ArrayList<>();
             for (FilesOp file : filesOp) {
@@ -535,61 +663,6 @@ private void safeAddErrorEntry(ZipOutputStream zos, String name, String message)
             } catch (IOException e) {
                 System.out.println("Error al obtener el archivo PDF: " + e.getMessage());
             }
-        }
-        else{
-            if (response.getMovements() != null
-                    && response.getMovements().getPaymentsAccountsRelationId() != null
-                    && response.getMovements().getPaymentsAccountsRelationId().getId() != null) {
-                List<FilesOp> filesOp = filesOpServiceImpl.getFilesOpByPaymentsAccountsRelationId(response.getMovements().getPaymentsAccountsRelationId().getId());
-                List<FilesOp> filesOpFinal = new java.util.ArrayList<>();
-                for (FilesOp file : filesOp) {
-                    
-                    String url = file.getFileUrl();
-    
-                    if (url == null || url.trim().isEmpty()) {
-                        continue;
-                    }
-    
-                    try (InputStream is = new URL(url.trim()).openStream()) {
-                        byte[] pdfBytes = is.readAllBytes();
-                        file.setFileUrl(Base64.getEncoder().encodeToString(pdfBytes)); // mejor: usar otro campo
-                        filesOpFinal.add(file);
-                    } catch (IOException e) {
-                    }
-                }
-                response.setFilesOp(filesOpFinal);
-                // return response;
-                try {
-                    for (int i = 0; i < response.getFilesOp().size(); i++) {
-                        String url = response.getFilesOp().get(i).getFileUrl()
-                                      .trim()
-                                      .replace(" ", "%20");
-                        InputStream is = new URL(url).openStream();
-                        byte[] pdfBytes = is.readAllBytes();
-            
-                        response.getFilesOp().get(i)
-                                .setFileUrl(Base64.getEncoder().encodeToString(pdfBytes));
-                    }
-        
-                } catch (IOException e) {
-                    System.out.println("Error al obtener el archivo PDF: " + e.getMessage());
-                }
-            }
-            try {
-                String url = response.getMovements().getPoContractId().getFileId().getFileUrl()
-                                .trim()
-                                .replace(" ", "%20");
-                InputStream is = new URL(url).openStream();
-                byte[] pdfBytes = is.readAllBytes();
-    
-                response.getMovements().getPoContractId().getFileId()
-                        .setFileUrl(Base64.getEncoder().encodeToString(pdfBytes));
-    
-            } catch (IOException e) {
-                System.out.println("Error al obtener el archivo PDF: " + e.getMessage());
-            }
-        }
-
         
         return response;
     }
@@ -691,7 +764,12 @@ private void safeAddErrorEntry(ZipOutputStream zos, String name, String message)
         cuentasUnicas.forEach(cuentaUnica -> {
             List<MovementListResponse> movementListResponse1 = new ArrayList<>();
             movementListResponse.forEach(movement -> {
-                if(movement.getHigherAccountId().getHigherAccountsViewId().getId().equals(cuentaUnica)){
+                if(
+                    movement.getHigherAccountId() != null &&
+                    movement.getHigherAccountId().getHigherAccountsViewId() != null &&
+                    movement.getHigherAccountId().getHigherAccountsViewId().getId() != null &&
+                    movement.getHigherAccountId().getHigherAccountsViewId().getId().equals(cuentaUnica)
+                ){
                     movementListResponse1.add(movement);
                 }
             });
@@ -741,9 +819,15 @@ private void safeAddErrorEntry(ZipOutputStream zos, String name, String message)
         List<MovementTableResponse> responses = new ArrayList<>();
         cuentasUnicas.forEach(cuentaUnica -> {
             List<MovementListResponse> movementListResponse1 = new ArrayList<>();
+            System.out.println(cuentaUnica);
             // saldo inicial
             movementListResponseBefore.forEach(movement -> {
-                if(movement.getHigherAccountId().getHigherAccountsViewId().getId().equals(cuentaUnica)){
+                if(
+                    movement.getHigherAccountId() != null &&
+                    movement.getHigherAccountId().getHigherAccountsViewId() != null &&
+                    movement.getHigherAccountId().getHigherAccountsViewId().getId() != null &&
+                    movement.getHigherAccountId().getHigherAccountsViewId().getId().equals(cuentaUnica)
+                ){
                     
                     MovementListResponse tableResponseInit = new MovementListResponse();
                     tableResponseInit.setId(0L);
@@ -756,7 +840,12 @@ private void safeAddErrorEntry(ZipOutputStream zos, String name, String message)
                 }
             });
             movementListResponse.forEach(movement -> {
-                if(movement.getHigherAccountId().getHigherAccountsViewId().getId().equals(cuentaUnica)){
+                if (
+                    movement.getHigherAccountId() != null &&
+                    movement.getHigherAccountId().getHigherAccountsViewId() != null &&
+                    movement.getHigherAccountId().getHigherAccountsViewId().getId() != null &&
+                    movement.getHigherAccountId().getHigherAccountsViewId().getId().equals(cuentaUnica)
+                ) {
                     movementListResponse1.add(movement);
                 }
             });

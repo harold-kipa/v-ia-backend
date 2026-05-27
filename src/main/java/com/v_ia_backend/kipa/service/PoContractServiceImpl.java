@@ -5,6 +5,8 @@ import org.springframework.stereotype.Service;
 import com.v_ia_backend.kipa.entity.PoContract;
 import com.v_ia_backend.kipa.repository.PoContractRepositoriy;
 import com.v_ia_backend.kipa.service.interfaces.PoContractService;
+import com.v_ia_backend.kipa.interfase.PoContractFileInterfase;
+import com.v_ia_backend.kipa.interfase.PoContractFilterInterfase;
 import com.v_ia_backend.kipa.interfase.PoContractInterfase;
 
 import java.net.URL;
@@ -34,9 +36,15 @@ public class PoContractServiceImpl implements PoContractService {
     }
 
     @Override
-    public List<PoContract> getPoContractByConsecutiveAndYear(Long id) {
+    public List<PoContractFilterInterfase> getPoContractByConsecutiveAndYear(Long id) {
         PoContract poContract = this.getPoContractById(id);
-        return poContractRepositoriy.findByConsecutiveAndYear(poContract.getConsecutive(), poContract.getYear());
+        List<PoContractFilterInterfase> poContractList = poContractRepositoriy.findByConsecutiveAndYear(poContract.getConsecutive(), poContract.getYear());
+        return poContractList;
+    }
+
+    @Override
+    public List<PoContractFileInterfase> getPoContractFileByMovementIdIn(List<Long> id) {
+        return poContractRepositoriy.findFileByMovementId_IdIn(id);
     }
 
     @Override

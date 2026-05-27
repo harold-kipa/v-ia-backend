@@ -79,7 +79,7 @@ public class SecurityConfig {
         // config.setAllowedOrigins(List.of("https://20.106.196.250.sslip.io")); // despliegue Azure actual
 
         config.setAllowedOrigins(List.of("http://localhost:4200"));
-        // config.setAllowedOrigins(List.of("http://192.168.1.39")); // IP local
+        // config.setAllowedOrigins(List.of("http://192.168.1.41")); // IP local
         // Si necesitas cookies/tokens con credenciales:
         config.setAllowCredentials(true);
 

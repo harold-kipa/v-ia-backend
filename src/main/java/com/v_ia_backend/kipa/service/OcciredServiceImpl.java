@@ -3,6 +3,7 @@ package com.v_ia_backend.kipa.service;
 import org.springframework.stereotype.Service;
 
 import com.v_ia_backend.kipa.entity.Occired;
+import com.v_ia_backend.kipa.interfase.OcciredFileInterfase;
 import com.v_ia_backend.kipa.repository.OcciredRepositoriy;
 import com.v_ia_backend.kipa.service.interfaces.OcciredService;
 
@@ -25,6 +26,11 @@ public class OcciredServiceImpl implements OcciredService {
     public List<Occired> getAllOccired() {
         List<Occired> filesOpList = filesOpRepositoriy.findAll();
         return filesOpList;
+    }
+
+    @Override
+    public List<OcciredFileInterfase> getOcciredFileByMovementIdIn(List<Long> id) {
+        return filesOpRepositoriy.findFileByMovementId_IdIn(id);
     }
 
     @Override

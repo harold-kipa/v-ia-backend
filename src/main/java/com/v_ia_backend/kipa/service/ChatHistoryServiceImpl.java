@@ -8,9 +8,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.v_ia_backend.kipa.dto.request.ChatHistoryRequest;
-import com.v_ia_backend.kipa.dto.request.UsersRequest;
 import com.v_ia_backend.kipa.entity.ChatHistory;
-import com.v_ia_backend.kipa.entity.Users;
 import com.v_ia_backend.kipa.modelview.ResponseMessage;
 import com.v_ia_backend.kipa.repository.ChatHistoryRepository;
 import com.v_ia_backend.kipa.service.interfaces.ChatHistoryService;

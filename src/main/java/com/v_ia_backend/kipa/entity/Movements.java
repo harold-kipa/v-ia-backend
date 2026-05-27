@@ -7,6 +7,7 @@ import lombok.Setter;
 import java.io.Serializable;
 import java.sql.Timestamp;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 @Entity
@@ -69,6 +70,7 @@ public class Movements implements Serializable {
     @Column(name = "currency")
     private String currency;
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "po_contract_id")
     private PoContract poContractId;

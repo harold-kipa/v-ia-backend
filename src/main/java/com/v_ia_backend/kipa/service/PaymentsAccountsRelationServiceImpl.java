@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import com.v_ia_backend.kipa.entity.PaymentsAccountsRelation;
 import com.v_ia_backend.kipa.repository.PaymentsAccountsRelationRepositoriy;
 import com.v_ia_backend.kipa.service.interfaces.PaymentsAccountsRelationService;
+import com.v_ia_backend.kipa.interfase.PaymentsAccountsRelationFilterInterfase;
 import com.v_ia_backend.kipa.interfase.PaymentsAccountsRelationInterfase;
 
 import java.util.List;
@@ -30,5 +31,9 @@ public class PaymentsAccountsRelationServiceImpl implements PaymentsAccountsRela
     @Override
     public List<PaymentsAccountsRelation> getPaymentsAccountsRelationByConsecutiveNumber(String consecutiveNumber) {
         return paymentsAccountsRelationRepositoriy.findByConsecutiveNumber(consecutiveNumber);
+    }
+    @Override
+    public List<PaymentsAccountsRelationFilterInterfase> getPaymentsAccountsRelationFilterByConsecutiveNumber(String consecutiveNumber) {
+        return paymentsAccountsRelationRepositoriy.findFilterByConsecutiveNumber(consecutiveNumber);
     }
 }
