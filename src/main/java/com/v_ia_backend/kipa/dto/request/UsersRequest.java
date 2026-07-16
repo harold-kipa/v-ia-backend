@@ -36,7 +36,7 @@ public class UsersRequest {
     @Pattern(regexp = "[a-zA-Z0-9À-ÿ\\s]+", message = "{pattern.name}")
     private String lastName;
 
-    @NotNull(message = "{notNull.general}")
+    // @NotNull(message = "{notNull.general}")
     private Long identificationNumber;
 
 }

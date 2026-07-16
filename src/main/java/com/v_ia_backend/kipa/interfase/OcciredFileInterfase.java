@@ -4,5 +4,7 @@ import com.v_ia_backend.kipa.entity.FilesOccired;
 
 public interface OcciredFileInterfase {
     FilesOccired getFileId();
-
+    Long getMovementId_paymentsAccountsRelationId_Id();
 }
+// Movements getMovementId();
+// Long getMovementId_Id();

@@ -7,11 +7,11 @@ import com.v_ia_backend.kipa.entity.CostCenters;
 import com.v_ia_backend.kipa.entity.HigherAccounts;
 import com.v_ia_backend.kipa.entity.Natures;
 
-public interface MovementsInterfase {
+public interface MovementsWithoutHigherAccountInterfase {
     Long getId();
     Timestamp getMovementDate();
-    HigherAccounts getHigherAccountId();
-    // Long getHigherAccountId_Id();
+    // HigherAccounts getHigherAccountId();
+    Long getHigherAccountId_Id();
     Auxiliaries getAuxiliaryId();  
     CostCenters getCostCenterId();
     Natures getNatureId();

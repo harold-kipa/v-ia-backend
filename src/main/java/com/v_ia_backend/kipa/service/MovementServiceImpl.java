@@ -38,6 +38,7 @@ import com.v_ia_backend.kipa.dto.response.MovementListResponse;
 import com.v_ia_backend.kipa.dto.response.MovementResponse;
 import com.v_ia_backend.kipa.dto.response.MovementTableResponse;
 import com.v_ia_backend.kipa.dto.response.MovementTotalsResponse;
+import com.v_ia_backend.kipa.dto.response.MovementsAndHigherAccountResponse;
 import com.v_ia_backend.kipa.entity.Files;
 import com.v_ia_backend.kipa.entity.FilesOccired;
 import com.v_ia_backend.kipa.entity.FilesOp;
@@ -47,6 +48,8 @@ import com.v_ia_backend.kipa.entity.Movements;
 import com.v_ia_backend.kipa.entity.PaymentsAccountsRelation;
 import com.v_ia_backend.kipa.interfase.HigherAccountInterfase;
 import com.v_ia_backend.kipa.interfase.MovementsFilesInterfase;
+import com.v_ia_backend.kipa.interfase.MovementsInterfase;
+import com.v_ia_backend.kipa.interfase.MovementsWithoutHigherAccountInterfase;
 import com.v_ia_backend.kipa.interfase.MovementsInterfase;
 import com.v_ia_backend.kipa.interfase.MovementsYearInterfase;
 import com.v_ia_backend.kipa.interfase.OcciredFileInterfase;
@@ -83,7 +86,9 @@ public class MovementServiceImpl implements MovementService {
     @Override
     public MovementTotalsResponse getAllMovementsByFilter(MovementFilterRequest movementFilterRequest) {
         List<MovementsInterfase> movements = new ArrayList<>();
-        List<MovementsInterfase> movementsBefore = new ArrayList<>();
+        List<MovementsAndHigherAccountResponse> movementsBefore = new ArrayList<>();
+        List<MovementsInterfase> movementsAndHigherAccountList = new ArrayList<>();;
+
         Timestamp initialDate = Timestamp.valueOf("2015-01-01 05:00:00");
         Long higherAcountChange = 3643L;
         if(movementFilterRequest.getStartDate() != null || movementFilterRequest.getEndDate() != null){
@@ -193,22 +198,31 @@ public class MovementServiceImpl implements MovementService {
             movements = this.MovementsRepositoriy.findDistinctByPaymentsAccountsRelationId_Id(paymentsAccountsRelation.getId());
         }
         else if(movementFilterRequest.getAuxiliaryId() == null && movementFilterRequest.getInitialAccountId() == null && movementFilterRequest.getFinalAccountId() == null){
-            movementsBefore = this.MovementsRepositoriy.findDistinctByMovementDateBetween(initialDate, movementFilterRequest.getStartDate());
+            movementsAndHigherAccountList = this.MovementsRepositoriy.findDistinctByMovementDateBetween(initialDate, movementFilterRequest.getStartDate());
+            movementsAndHigherAccountList.forEach(movementWithoutHigherAccount -> {
+                MovementsAndHigherAccountResponse movementBefore = new MovementsAndHigherAccountResponse(movementWithoutHigherAccount.getId(), movementWithoutHigherAccount.getMovementDate(), movementWithoutHigherAccount.getHigherAccountId(), movementWithoutHigherAccount.getAuxiliaryId(), movementWithoutHigherAccount.getCostCenterId(), movementWithoutHigherAccount.getNatureId(), movementWithoutHigherAccount.getMovementDescription(), movementWithoutHigherAccount.getVoucherAmount());
+                movementsBefore.add(movementBefore);
+            });
             movements = this.MovementsRepositoriy.findDistinctByMovementDateBetween(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate());
         }
         else if(movementFilterRequest.getAuxiliaryId() == null && movementFilterRequest.getStartDate() == null && movementFilterRequest.getEndDate() == null){
             movements = this.MovementsRepositoriy.findDistinctByHigherAccountId_IdBetween(movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId());
         }
         else if(movementFilterRequest.getAuxiliaryId() != null && movementFilterRequest.getStartDate() != null && movementFilterRequest.getEndDate() != null && movementFilterRequest.getInitialAccountId() == null){
-            movementsBefore = this.MovementsRepositoriy.findDistinctByMovementDateBetweenAndAuxiliaryId_Id(initialDate, movementFilterRequest.getStartDate(), movementFilterRequest.getAuxiliaryId());
+            movementsAndHigherAccountList = this.MovementsRepositoriy.findDistinctByMovementDateBetweenAndAuxiliaryId_Id(initialDate, movementFilterRequest.getStartDate(), movementFilterRequest.getAuxiliaryId());
+            movementsAndHigherAccountList.forEach(movementWithoutHigherAccount -> {
+                MovementsAndHigherAccountResponse movementBefore = new MovementsAndHigherAccountResponse(movementWithoutHigherAccount.getId(), movementWithoutHigherAccount.getMovementDate(), movementWithoutHigherAccount.getHigherAccountId(), movementWithoutHigherAccount.getAuxiliaryId(), movementWithoutHigherAccount.getCostCenterId(), movementWithoutHigherAccount.getNatureId(), movementWithoutHigherAccount.getMovementDescription(), movementWithoutHigherAccount.getVoucherAmount());
+                movementsBefore.add(movementBefore);
+            });
             movements = this.MovementsRepositoriy.findDistinctByMovementDateBetweenAndAuxiliaryId_Id(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate(), movementFilterRequest.getAuxiliaryId());
         }
         else if(movementFilterRequest.getAuxiliaryId() == null ){
+            List<MovementsWithoutHigherAccountInterfase> movementsWithoutHigherAccountList = null;
             if(movementFilterRequest.getInitialAccountId() < higherAcountChange){
                 Instant instant = movementFilterRequest.getStartDate().toInstant();
                 Instant adjusted = instant.minus(Duration.ofHours(6));
                 Timestamp newTimestamp = Timestamp.from(adjusted);
-                movementsBefore = this.MovementsRepositoriy.findDistinctByMovementDateBetweenAndHigherAccountId_IdBetween(initialProjectDate, newTimestamp, movementFilterRequest.getInitialAccountId(), higherAcountChange);
+                movementsWithoutHigherAccountList = this.MovementsRepositoriy.findMovementsWithoutHigherAccountDistinctByMovementDateBetweenAndHigherAccountId_IdBetween(initialProjectDate, newTimestamp, movementFilterRequest.getInitialAccountId(), higherAcountChange);
                 System.out.println(movementFilterRequest.getStartDate());
                 // movementsBefore.addAll(this.MovementsRepositoriy.findDistinctByMovementDateBetweenAndHigherAccountId_IdBetween(initialDate, movementFilterRequest.getStartDate(), higherAcountChange+1, movementFilterRequest.getFinalAccountId()));
             }
@@ -216,39 +230,51 @@ public class MovementServiceImpl implements MovementService {
                 Instant instant = movementFilterRequest.getStartDate().toInstant();
                 Instant adjusted = instant.minus(Duration.ofHours(6));
                 Timestamp newTimestamp = Timestamp.from(adjusted);
-                movementsBefore = this.MovementsRepositoriy.findDistinctByMovementDateBetweenAndHigherAccountId_IdBetween(initialDate, newTimestamp, movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId());
+                movementsWithoutHigherAccountList = this.MovementsRepositoriy.findMovementsWithoutHigherAccountDistinctByMovementDateBetweenAndHigherAccountId_IdBetween(initialDate, newTimestamp, movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId());
                 
             }
             Instant instant = movementFilterRequest.getStartDate().toInstant();
             Instant adjusted = instant.minus(Duration.ofHours(6));
             Timestamp newTimestamp = Timestamp.from(adjusted);
+            movementsWithoutHigherAccountList.forEach(movementWithoutHigherAccount -> {
+                HigherAccounts higherAccountFake = new HigherAccounts();
+                higherAccountFake.setId(movementWithoutHigherAccount.getHigherAccountId_Id());
+                MovementsAndHigherAccountResponse movementBefore = new MovementsAndHigherAccountResponse(movementWithoutHigherAccount.getId(), movementWithoutHigherAccount.getMovementDate(), higherAccountFake, movementWithoutHigherAccount.getAuxiliaryId(), movementWithoutHigherAccount.getCostCenterId(), movementWithoutHigherAccount.getNatureId(), movementWithoutHigherAccount.getMovementDescription(), movementWithoutHigherAccount.getVoucherAmount());
+                movementsBefore.add(movementBefore);
+            });
+            HigherAccounts higherAccountFake = new HigherAccounts();
+            higherAccountFake.setId(null);
             movements = this.MovementsRepositoriy.findDistinctByMovementDateBetweenAndHigherAccountId_IdBetween(newTimestamp, movementFilterRequest.getEndDate(), movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId());
             System.out.println(movementFilterRequest.getStartDate());
             System.out.println(newTimestamp);
             System.out.println(initialDate);
-            System.out.println(movementsBefore);
+                // System.out.println(movementsBefore);
         }
         else if(movementFilterRequest.getInitialAccountId() == null && movementFilterRequest.getFinalAccountId() == null && movementFilterRequest.getStartDate() == null && movementFilterRequest.getEndDate() == null){
             movements = this.MovementsRepositoriy.findDistinctByAuxiliaryId_Id(movementFilterRequest.getAuxiliaryId());
         }
         else{
-            movementsBefore = this.MovementsRepositoriy.findDistinctByMovementDateBetweenAndHigherAccountId_IdBetweenAndAuxiliaryId_Id(initialDate, movementFilterRequest.getStartDate(), movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId(), movementFilterRequest.getAuxiliaryId());
+            movementsAndHigherAccountList = this.MovementsRepositoriy.findDistinctByMovementDateBetweenAndHigherAccountId_IdBetweenAndAuxiliaryId_Id(initialDate, movementFilterRequest.getStartDate(), movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId(), movementFilterRequest.getAuxiliaryId());
+            movementsAndHigherAccountList.forEach(movementWithoutHigherAccount -> {
+                MovementsAndHigherAccountResponse movementBefore = new MovementsAndHigherAccountResponse(movementWithoutHigherAccount.getId(), movementWithoutHigherAccount.getMovementDate(), movementWithoutHigherAccount.getHigherAccountId(), movementWithoutHigherAccount.getAuxiliaryId(), movementWithoutHigherAccount.getCostCenterId(), movementWithoutHigherAccount.getNatureId(), movementWithoutHigherAccount.getMovementDescription(), movementWithoutHigherAccount.getVoucherAmount());
+                movementsBefore.add(movementBefore);
+            });
             movements = this.MovementsRepositoriy.findDistinctByMovementDateBetweenAndHigherAccountId_IdBetweenAndAuxiliaryId_Id(movementFilterRequest.getStartDate(), movementFilterRequest.getEndDate(), movementFilterRequest.getInitialAccountId(), movementFilterRequest.getFinalAccountId(), movementFilterRequest.getAuxiliaryId());
         }
-        movements = removeDuplicatesById(movements);
+        List<MovementsAndHigherAccountResponse> movementsList = removeDuplicatesByIdMovement(movements);
 
-        movements.sort(
-            Comparator.comparing(MovementsInterfase::getMovementDescription)
+        movementsList.sort(
+            Comparator.comparing(MovementsAndHigherAccountResponse::getMovementDescription)
             .thenComparing(
-                (MovementsInterfase m) -> m.getHigherAccountId(),
+                (MovementsAndHigherAccountResponse m) -> m.getHigherAccountId(),
                 Comparator.nullsLast(
                 Comparator.comparing(HigherAccounts::getId)
                 )
             )
         );
-        System.out.println(movements.size());
-        List<Long> cuentasUnicas = movements.stream()
-                .map(MovementsInterfase::getHigherAccountId)
+        System.out.println(movementsList.size());
+        List<Long> cuentasUnicas = movementsList.stream()
+                .map(MovementsAndHigherAccountResponse::getHigherAccountId)
                 .filter(Objects::nonNull)
                 .map(HigherAccounts::getHigherAccountsViewId)
                 .filter(Objects::nonNull)
@@ -257,14 +283,15 @@ public class MovementServiceImpl implements MovementService {
                 .distinct()
                 .collect(Collectors.toList());
 
-        System.out.println(cuentasUnicas);
+        System.out.println(cuentasUnicas.size());
 
         MovementTotalsResponse responses = new MovementTotalsResponse();
         
         if (movementsBefore.isEmpty()==false){
-            movementsBefore = removeDuplicatesById(movementsBefore);
-            List<MovementsInterfase> movementBeforeCount = new ArrayList<>();
-            for (MovementsInterfase movementBefore : movementsBefore) {
+            List<MovementsAndHigherAccountResponse> movementsBeforeWithoutDuplicates =
+        removeDuplicatesByIdMovementBefore(movementsBefore);
+            List<MovementsAndHigherAccountResponse> movementBeforeCount = new ArrayList<>();
+            for (MovementsAndHigherAccountResponse movementBefore : movementsBeforeWithoutDuplicates) {
                 if(movementBefore.getHigherAccountId().getId() == 201L){
                     System.out.println(movementBefore.getId());
                     System.out.println(movementBefore.getVoucherAmount());
@@ -284,11 +311,11 @@ public class MovementServiceImpl implements MovementService {
             System.out.println(cuentasUnicasBefore);
             List<MovementListResponse> movementBeforeListResponse = sortMovements(movementsBefore);
             MovementTotalsResponse responsesBefore = calculationsMovements(movementBeforeListResponse, cuentasUnicasBefore);
-            List<MovementListResponse> movementListResponse = sortMovements(movements);
+            List<MovementListResponse> movementListResponse = sortMovements(movementsList);
             responses = calculationsBeforeMovements(movementListResponse, cuentasUnicas, responsesBefore.getMovementTableResponse());
         }
         else{
-            List<MovementListResponse> movementListResponse = sortMovements(movements);
+            List<MovementListResponse> movementListResponse = sortMovements(movementsList);
             responses = calculationsMovements(movementListResponse, cuentasUnicas);
         }
         
@@ -387,6 +414,8 @@ public class MovementServiceImpl implements MovementService {
          BufferedOutputStream bos = new BufferedOutputStream(fos, 1024 * 1024);
          ZipOutputStream zos = new ZipOutputStream(bos)) {
 
+        String opName = "";
+
         for (MovementFilesRequest movement : movementsFinalRequest.getData()) {
 
             List<MovementsFilesInterfase> rels =
@@ -417,7 +446,7 @@ public class MovementServiceImpl implements MovementService {
                             continue;
                         }
     
-                        String url = item.getFileUrl();
+                        String url = item.getFileUrl().trim().replace(" ", "%20");
                         if (url == null || url.isBlank()) {
                             err++;
                             continue;
@@ -428,7 +457,7 @@ public class MovementServiceImpl implements MovementService {
                                 ? ""
                                 : movement.getAccountNumberHomologated().toString()
                         );
-    
+                        opName = item.getFileName();
                         String fileName = sanitizeFileName(item.getFileName());
                         if (!StringUtils.hasText(fileName)) fileName = "documento.pdf";
                         if (!fileName.toLowerCase().endsWith(".pdf")) fileName += ".pdf";
@@ -470,7 +499,7 @@ public class MovementServiceImpl implements MovementService {
                         continue;
                     }
     
-                    String url = item.getFileUrl();
+                    String url = item.getFileUrl().trim().replace(" ", "%20");
                     if (url == null || url.isBlank()) {
                         err++;
                         continue;
@@ -523,7 +552,7 @@ public class MovementServiceImpl implements MovementService {
                         continue;
                     }
     
-                    String url = item.getFileUrl();
+                    String url = item.getFileUrl().trim().replace(" ", "%20");
                     if (url == null || url.isBlank()) {
                         err++;
                         continue;
@@ -534,10 +563,29 @@ public class MovementServiceImpl implements MovementService {
                             ? ""
                             : movement.getAccountNumberHomologated().toString()
                     );
-    
-                    String fileName = sanitizeFileName(item.getFileName());
-                    if (!StringUtils.hasText(fileName)) fileName = "documento.pdf";
-                    if (!fileName.toLowerCase().endsWith(".pdf")) fileName += ".pdf";
+
+                    List<FilesOp> filesOp =
+                        filesOpServiceImpl.getFilesOpByPaymentsAccountsRelationId(
+                            OcciredFile.getMovementId_paymentsAccountsRelationId_Id()
+                        );
+                    
+                    String fileName = sanitizeFileName(filesOp.isEmpty() ? item.getFileName() : filesOp.get(0).getFileName());
+                    if (!StringUtils.hasText(fileName)) {
+                        fileName = "documento_SP.pdf";
+                    } else {
+                        // Quitar .pdf si ya existe
+                        if (fileName.toLowerCase().endsWith(".pdf")) {
+                            fileName = fileName.substring(0, fileName.length() - 4);
+                        }
+
+                        // Agregar _SP si no existe
+                        if (!fileName.endsWith("_SP")) {
+                            fileName += "_SP";
+                        }
+
+                        // Agregar extensión pdf
+                        fileName += ".pdf";
+                    }
     
                     String entryNameBase = (StringUtils.hasText(folder) ? folder + "/" : "") + fileName;
     
@@ -682,12 +730,14 @@ private void safeAddErrorEntry(ZipOutputStream zos, String name, String message)
         return BigDecimal.ZERO;
 
     }
-    public List<MovementListResponse> sortMovements(List<MovementsInterfase> movements){
+    public List<MovementListResponse> sortMovements(List<MovementsAndHigherAccountResponse> movements){
         List<MovementListResponse> movementListResponse = new java.util.ArrayList<>();
+        System.out.println(movements.size());
         movements.forEach(movement -> {
             // filtro que retorna un movimiento si encuentra uno repetido
-            MovementListResponse movementListResponse1 = movementListResponse.stream().filter(p -> p.getMovementDescription().equals(movement.getMovementDescription()) && p.getHigherAccountId().getId().equals(movement.getHigherAccountId().getId()) && p.getAuxiliaryId().getId().equals(movement.getAuxiliaryId().getId())).findFirst().orElse(null);
+            MovementListResponse movementListResponse1 = movementListResponse.stream().filter(p -> p.getMovementDescription().equals(movement.getMovementDescription()) && p.getHigherAccountId().getId().equals(movement.getHigherAccountId().getId())&& p.getAuxiliaryId().getId().equals(movement.getAuxiliaryId().getId())).findFirst().orElse(null);
             // si es nuevo, lo crea
+            System.out.println(movementListResponse.size());
             if (movementListResponse1 == null){
                 if (movement.getMovementDescription().equals("CANCELA CUENTAS POR CIERRE ANUAL")){ 
                     return;
@@ -752,7 +802,6 @@ private void safeAddErrorEntry(ZipOutputStream zos, String name, String message)
                 }
                 
             }
-
             // movementListResponse1.setBalance(BigDecimal.ZERO.longValue());
         });
         return movementListResponse;
@@ -890,7 +939,21 @@ private void safeAddErrorEntry(ZipOutputStream zos, String name, String message)
         return movementTotalsResponse;
     }
 
-    public List<MovementsInterfase> removeDuplicatesById(List<MovementsInterfase> movements) {
+    public List<MovementsAndHigherAccountResponse> removeDuplicatesByIdMovement(List<MovementsInterfase> movements) {
+        List<MovementsAndHigherAccountResponse> movementsList = new ArrayList<>();
+        movements.forEach(movementWithoutHigherAccount -> {
+                MovementsAndHigherAccountResponse movementBefore = new MovementsAndHigherAccountResponse(movementWithoutHigherAccount.getId(), movementWithoutHigherAccount.getMovementDate(), movementWithoutHigherAccount.getHigherAccountId(), movementWithoutHigherAccount.getAuxiliaryId(), movementWithoutHigherAccount.getCostCenterId(), movementWithoutHigherAccount.getNatureId(), movementWithoutHigherAccount.getMovementDescription(), movementWithoutHigherAccount.getVoucherAmount());
+                movementsList.add(movementBefore);
+            });
+
+        Set<Long> seenIds = new HashSet<>();
+
+        return movementsList.stream()
+                .filter(m -> seenIds.add(m.getId()))
+                .collect(Collectors.toList());
+    }
+
+    public List<MovementsAndHigherAccountResponse> removeDuplicatesByIdMovementBefore(List<MovementsAndHigherAccountResponse> movements) {
 
         Set<Long> seenIds = new HashSet<>();
 
