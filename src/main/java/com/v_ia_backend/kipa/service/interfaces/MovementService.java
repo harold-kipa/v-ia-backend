@@ -8,6 +8,7 @@ import com.v_ia_backend.kipa.dto.response.MovementResponse;
 import com.v_ia_backend.kipa.dto.response.MovementTableResponse;
 import com.v_ia_backend.kipa.dto.response.MovementTotalsResponse;
 import com.v_ia_backend.kipa.dto.response.MovementsAndHigherAccountResponse;
+import com.v_ia_backend.kipa.interfase.MovementsInterfase;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -16,7 +17,8 @@ import java.util.List;
 public interface MovementService {
     MovementResponse getMovementById(Long id);
     MovementTotalsResponse getAllMovementsByFilter(MovementFilterRequest movementFilterRequest);
-    List<MovementListResponse> sortMovements(List<MovementsAndHigherAccountResponse> movements);
+    // List<MovementListResponse> sortMovements(List<MovementsAndHigherAccountResponse> movements);
+    List<MovementListResponse> groupMovements(List<MovementsAndHigherAccountResponse>  movements);
     MovementTotalsResponse calculationsMovements(List<MovementListResponse> movementListResponse, List<Long> cuentasUnicas);
     MovementTotalsResponse calculationsBeforeMovements(List<MovementListResponse> movementListResponse, List<Long> cuentasUnicas, List<MovementTableResponse> movementListResponseBefore);
     List<CapexResponse> getMovementByCapex(Long year);

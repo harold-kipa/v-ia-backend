@@ -76,9 +76,9 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         // Cambia por tus orígenes reales (puedes listar varios)
         // config.setAllowedOrigins(List.of("http://20.106.196.250")); // despliegue Azure antigua
-        config.setAllowedOrigins(List.of("https://20.106.196.250.sslip.io")); // despliegue Azure actual
+        // config.setAllowedOrigins(List.of("https://20.106.196.250.sslip.io")); // despliegue Azure actual
 
-        // config.setAllowedOrigins(List.of("http://localhost:4200"));
+        config.setAllowedOrigins(List.of("http://localhost:4200"));
         // config.setAllowedOrigins(List.of("http://192.168.1.41:4200")); // IP local
         // config.setAllowedOrigins(List.of("http://192.168.1.41")); // IP local
         // Si necesitas cookies/tokens con credenciales:

@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URI;
 import java.net.URL;
 import java.net.http.HttpRequest;
@@ -18,7 +19,9 @@ import java.util.Base64;
 import java.util.Calendar;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -238,7 +241,11 @@ public class MovementServiceImpl implements MovementService {
             Timestamp newTimestamp = Timestamp.from(adjusted);
             movementsWithoutHigherAccountList.forEach(movementWithoutHigherAccount -> {
                 HigherAccounts higherAccountFake = new HigherAccounts();
+                HigherAccountsView higherAccountViewFake = new HigherAccountsView();
                 higherAccountFake.setId(movementWithoutHigherAccount.getHigherAccountId_Id());
+                higherAccountFake.setAccountNumberHomologated(movementWithoutHigherAccount.getHigherAccountId_AccountNumberHomologated());
+                higherAccountViewFake.setId(movementWithoutHigherAccount.getHigherAccountId_higherAccountsViewId_Id());
+                higherAccountFake.setHigherAccountsViewId(higherAccountViewFake);
                 MovementsAndHigherAccountResponse movementBefore = new MovementsAndHigherAccountResponse(movementWithoutHigherAccount.getId(), movementWithoutHigherAccount.getMovementDate(), higherAccountFake, movementWithoutHigherAccount.getAuxiliaryId(), movementWithoutHigherAccount.getCostCenterId(), movementWithoutHigherAccount.getNatureId(), movementWithoutHigherAccount.getMovementDescription(), movementWithoutHigherAccount.getVoucherAmount());
                 movementsBefore.add(movementBefore);
             });
@@ -290,32 +297,35 @@ public class MovementServiceImpl implements MovementService {
         if (movementsBefore.isEmpty()==false){
             List<MovementsAndHigherAccountResponse> movementsBeforeWithoutDuplicates =
         removeDuplicatesByIdMovementBefore(movementsBefore);
-            List<MovementsAndHigherAccountResponse> movementBeforeCount = new ArrayList<>();
-            for (MovementsAndHigherAccountResponse movementBefore : movementsBeforeWithoutDuplicates) {
-                if(movementBefore.getHigherAccountId().getId() == 201L){
-                    System.out.println(movementBefore.getId());
-                    System.out.println(movementBefore.getVoucherAmount());
-                    movementBeforeCount.add(movementBefore);
-                }
-            }
-            System.out.println(movementBeforeCount.size());
+            // List<MovementsAndHigherAccountResponse> movementBeforeCount = new ArrayList<>();
+            // for (MovementsAndHigherAccountResponse movementBefore : movementsBeforeWithoutDuplicates) {
+            //     if(movementBefore.getHigherAccountId().getId() == 201L){
+            //         System.out.println(movementBefore.getId());
+            //         System.out.println(movementBefore.getVoucherAmount());
+            //         movementBeforeCount.add(movementBefore);
+            //     }
+            // }
+            // System.out.println(movementBeforeCount.size());
             
             List<Long> cuentasUnicasBefore = movementsBefore.stream()
-                    .filter(m -> m.getHigherAccountId() != null)
-                    .filter(m -> m.getHigherAccountId().getHigherAccountsViewId() != null)
                     .filter(m -> m.getHigherAccountId().getHigherAccountsViewId().getId() != null)
                     .map(m -> m.getHigherAccountId().getHigherAccountsViewId().getId())
                     .distinct()
                     .collect(Collectors.toList());
     
             System.out.println(cuentasUnicasBefore);
-            List<MovementListResponse> movementBeforeListResponse = sortMovements(movementsBefore);
+            List<MovementListResponse> movementBeforeListResponse = groupMovements(movementsBefore);
+            // movementBeforeListResponse.forEach(movementBefore -> {
+            //     if (movementBefore.getHigherAccountId().getId() == 12) {
+            //         System.out.println("Movement Before:");
+            //     }
+            // });
             MovementTotalsResponse responsesBefore = calculationsMovements(movementBeforeListResponse, cuentasUnicasBefore);
-            List<MovementListResponse> movementListResponse = sortMovements(movementsList);
+            List<MovementListResponse> movementListResponse = groupMovements(movementsList);
             responses = calculationsBeforeMovements(movementListResponse, cuentasUnicas, responsesBefore.getMovementTableResponse());
         }
         else{
-            List<MovementListResponse> movementListResponse = sortMovements(movementsList);
+            List<MovementListResponse> movementListResponse = groupMovements(movementsList);
             responses = calculationsMovements(movementListResponse, cuentasUnicas);
         }
         
@@ -730,82 +740,147 @@ private void safeAddErrorEntry(ZipOutputStream zos, String name, String message)
         return BigDecimal.ZERO;
 
     }
-    public List<MovementListResponse> sortMovements(List<MovementsAndHigherAccountResponse> movements){
-        List<MovementListResponse> movementListResponse = new java.util.ArrayList<>();
-        System.out.println(movements.size());
-        movements.forEach(movement -> {
-            // filtro que retorna un movimiento si encuentra uno repetido
-            MovementListResponse movementListResponse1 = movementListResponse.stream().filter(p -> p.getMovementDescription().equals(movement.getMovementDescription()) && p.getHigherAccountId().getId().equals(movement.getHigherAccountId().getId())&& p.getAuxiliaryId().getId().equals(movement.getAuxiliaryId().getId())).findFirst().orElse(null);
-            // si es nuevo, lo crea
-            System.out.println(movementListResponse.size());
-            if (movementListResponse1 == null){
-                if (movement.getMovementDescription().equals("CANCELA CUENTAS POR CIERRE ANUAL")){ 
-                    return;
-                }
-                if (movement.getMovementDescription().equals("SALDOS INICIALES")){ 
-                    return;
-                }
-                // List<MovementTableResponse> tableResponse = new java.util.ArrayList<>();
-                // MovementTableResponse tableResponse1 = new MovementTableResponse();
-                movementListResponse1 = new MovementListResponse();
-                movementListResponse1.setMovementDescription(movement.getMovementDescription());
-                movementListResponse1.setHigherAccountId(movement.getHigherAccountId());
-                movementListResponse1.setAuxiliaryId(movement.getAuxiliaryId());
-                movementListResponse1.setMovementDate(movement.getMovementDate());
-                movementListResponse1.setCostCenterId(movement.getCostCenterId());
-                movementListResponse1.setId(movement.getId());
-                String raw = movement.getVoucherAmount();
-                java.math.BigDecimal amount = java.math.BigDecimal.ZERO;
-                if(raw != null && !raw.isBlank()){
-                    // Normalize: remove grouping separators and trim
-                    String cleaned = raw.replaceAll("[,\\s]", "");
-                    try{
-                        amount = new java.math.BigDecimal(cleaned);
-                    } catch (NumberFormatException ex){
-                        // If parsing fails, fallback to zero to avoid crashing; log the problem
-                        System.err.println("Failed parsing voucherAmount='" + raw + "' for movement id=" + movement.getId() + ": " + ex.getMessage());
-                        amount = java.math.BigDecimal.ZERO;
-                    }
-                }
-                if (movement.getNatureId() != null && movement.getNatureId().getId() == 1L){
-                    // beforeDebit[0] = beforeDebit[0].add(amount);
-                    movementListResponse1.setCredit(java.math.BigDecimal.ZERO);
-                    movementListResponse1.setDebit(amount.setScale(0, java.math.RoundingMode.HALF_UP));
-                } else{
-                    // beforeCredit[0] = beforeCredit[0].add(amount);
-                    movementListResponse1.setCredit(amount.setScale(0, java.math.RoundingMode.HALF_UP));
-                    movementListResponse1.setDebit(java.math.BigDecimal.ZERO);
-                }
-                movementListResponse1.setBalance(movementListResponse1.getDebit().add(movementListResponse1.getCredit()));
-                movementListResponse.add(movementListResponse1);
-            }
-            // de lo contrario solo suma los valores
-            else{
-                String raw = movement.getVoucherAmount();
-                java.math.BigDecimal amount = java.math.BigDecimal.ZERO;
-                if(raw != null && !raw.isBlank()){
-                    // Normalize: remove grouping separators and trim
-                    String cleaned = raw.replaceAll("[,\\s]", "");
-                    try{
-                        amount = new java.math.BigDecimal(cleaned);
-                    } catch (NumberFormatException ex){
-                        // If parsing fails, fallback to zero to avoid crashing; log the problem
-                        System.err.println("Failed parsing voucherAmount='" + raw + "' for movement id=" + movement.getId() + ": " + ex.getMessage());
-                        amount = java.math.BigDecimal.ZERO;
-                    }
-                }
-                if (movement.getNatureId() != null && movement.getNatureId().getId() == 1L){
-
-                    movementListResponse1.setDebit(movementListResponse1.getDebit().add(amount));
-                } else{
-                    movementListResponse1.setCredit(movementListResponse1.getCredit().add(amount));
-                }
-                
-            }
-            // movementListResponse1.setBalance(BigDecimal.ZERO.longValue());
-        });
-        return movementListResponse;
+    private record MovementKey(
+        String movementDescription,
+        Long higherAccountId,
+        Long auxiliaryId
+    ) {
     }
+    @Override
+    public List<MovementListResponse> groupMovements(List<MovementsAndHigherAccountResponse>  movements) {
+
+        Map<MovementKey, MovementListResponse> movementsMap =
+                new LinkedHashMap<>();
+
+        for (MovementsAndHigherAccountResponse movement : movements) {
+
+            String description = movement.getMovementDescription();
+
+            // Excluir desde el inicio para evitar trabajo innecesario
+            if ("CANCELA CUENTAS POR CIERRE ANUAL".equals(description)
+                    || "SALDOS INICIALES".equals(description)) {
+                continue;
+            }
+
+            Long higherAccountId =
+                    movement.getHigherAccountId() != null
+                        ? movement.getHigherAccountId().getId()
+                        : null;
+            // if (higherAccountId == 12) {
+            //     System.out.println(movement.getId());
+            // }
+
+            Long auxiliaryId =
+                    movement.getAuxiliaryId() != null
+                        ? movement.getAuxiliaryId().getId()
+                        : null;
+
+            MovementKey key = new MovementKey(
+                    description,
+                    higherAccountId,
+                    auxiliaryId
+            );
+
+            MovementListResponse response = movementsMap.computeIfAbsent(
+                    key,
+                    ignored -> createMovementResponse(movement)
+            );
+
+            BigDecimal amount = parseVoucherAmount(
+                    movement.getVoucherAmount(),
+                    movement.getId()
+            ).setScale(0, RoundingMode.HALF_UP);
+
+            Long natureId =
+                    movement.getNatureId() != null
+                        ? movement.getNatureId().getId()
+                        : null;
+
+            if (Objects.equals(natureId, 1L)) {
+                response.setDebit(
+                        response.getDebit().add(amount)
+                );
+            } else {
+                response.setCredit(
+                        response.getCredit().add(amount)
+                );
+            }
+
+            response.setBalance(
+                    response.getDebit().add(response.getCredit())
+            );
+            // System.out.println(response.getBalance());
+        }
+
+        return new ArrayList<>(movementsMap.values());
+    }
+
+private BigDecimal parseVoucherAmount(
+        String raw,
+        Long movementId
+) {
+
+    if (raw == null || raw.isBlank()) {
+        return BigDecimal.ZERO;
+    }
+
+    StringBuilder cleaned = new StringBuilder(raw.length());
+
+    for (int i = 0; i < raw.length(); i++) {
+        char character = raw.charAt(i);
+
+        if (character != ',' && !Character.isWhitespace(character)) {
+            cleaned.append(character);
+        }
+    }
+
+    if (cleaned.isEmpty()) {
+        return BigDecimal.ZERO;
+    }
+
+    try {
+        return new BigDecimal(cleaned.toString());
+    } catch (NumberFormatException exception) {
+        System.err.println(
+                "No se pudo convertir voucherAmount='"
+                    + raw
+                    + "' para el movimiento id="
+                    + movementId
+        );
+
+        return BigDecimal.ZERO;
+    }
+}
+
+private MovementListResponse createMovementResponse(
+        MovementsAndHigherAccountResponse movement
+) {
+
+    MovementListResponse response = new MovementListResponse();
+
+    response.setId(movement.getId());
+    response.setMovementDescription(
+            movement.getMovementDescription()
+    );
+    response.setHigherAccountId(
+            movement.getHigherAccountId()
+    );
+    response.setAuxiliaryId(
+            movement.getAuxiliaryId()
+    );
+    response.setMovementDate(
+            movement.getMovementDate()
+    );
+    response.setCostCenterId(
+            movement.getCostCenterId()
+    );
+
+    response.setDebit(BigDecimal.ZERO);
+    response.setCredit(BigDecimal.ZERO);
+    response.setBalance(BigDecimal.ZERO);
+
+    return response;
+}
 
     public MovementTotalsResponse calculationsMovements(List<MovementListResponse> movementListResponse, List<Long> cuentasUnicas){
         MovementTotalsResponse movementTotalsResponse = new MovementTotalsResponse(BigDecimal.ZERO,BigDecimal.ZERO,BigDecimal.ZERO, new ArrayList<>());
@@ -825,9 +900,9 @@ private void safeAddErrorEntry(ZipOutputStream zos, String name, String message)
             MovementTableResponse tableResponse = new MovementTableResponse();
             if (movementListResponse1 != null && !movementListResponse1.isEmpty()) {
                 tableResponse.setHigherAccountId(movementListResponse1.get(0).getHigherAccountId());
-                if(tableResponse.getHigherAccountId().getId()==201L){
-                        System.out.println(tableResponse.getId());
-                    }
+                // if(tableResponse.getHigherAccountId().getId()==12){
+                //         System.out.println(tableResponse.getId());
+                //     }
                 BigDecimal[] totals = {BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO}; // [totalDebit, totalCredit, totalBalance]
                 movementListResponse1.forEach(movement -> {
                     movement.setDebit(movement.getDebit().abs());

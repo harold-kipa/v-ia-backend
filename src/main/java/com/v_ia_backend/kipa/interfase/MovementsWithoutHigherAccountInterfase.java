@@ -12,6 +12,8 @@ public interface MovementsWithoutHigherAccountInterfase {
     Timestamp getMovementDate();
     // HigherAccounts getHigherAccountId();
     Long getHigherAccountId_Id();
+    Long getHigherAccountId_higherAccountsViewId_Id();
+    Long getHigherAccountId_AccountNumberHomologated();
     Auxiliaries getAuxiliaryId();  
     CostCenters getCostCenterId();
     Natures getNatureId();
