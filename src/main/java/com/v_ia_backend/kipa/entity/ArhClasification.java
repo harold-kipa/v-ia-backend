@@ -21,4 +21,12 @@ public class ArhClasification implements Serializable {
 
     @Column(name = "arh_clasification_name")
     private String arhClasificationName;
+
+    public ArhClasification() {
+    }
+
+    public ArhClasification(Long id, String arhClasificationName) {
+        this.id = id;
+        this.arhClasificationName = arhClasificationName;
+    }
 }

@@ -3,12 +3,15 @@ package com.v_ia_backend.kipa.service.interfaces;
 import org.springframework.stereotype.Service;
 import com.v_ia_backend.kipa.dto.request.MovementFilterRequest;
 import com.v_ia_backend.kipa.dto.response.CapexResponse;
+import com.v_ia_backend.kipa.dto.response.MovementArhResponse;
 import com.v_ia_backend.kipa.dto.response.MovementListResponse;
 import com.v_ia_backend.kipa.dto.response.MovementResponse;
 import com.v_ia_backend.kipa.dto.response.MovementTableResponse;
 import com.v_ia_backend.kipa.dto.response.MovementTotalsResponse;
 import com.v_ia_backend.kipa.dto.response.MovementsAndHigherAccountResponse;
+import com.v_ia_backend.kipa.entity.ArhClasification;
 import com.v_ia_backend.kipa.interfase.MovementsInterfase;
+import com.v_ia_backend.kipa.entity.ArhClasification;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -19,8 +22,9 @@ public interface MovementService {
     MovementTotalsResponse getAllMovementsByFilter(MovementFilterRequest movementFilterRequest);
     // List<MovementListResponse> sortMovements(List<MovementsAndHigherAccountResponse> movements);
     List<MovementListResponse> groupMovements(List<MovementsAndHigherAccountResponse>  movements);
-    MovementTotalsResponse calculationsMovements(List<MovementListResponse> movementListResponse, List<Long> cuentasUnicas);
-    MovementTotalsResponse calculationsBeforeMovements(List<MovementListResponse> movementListResponse, List<Long> cuentasUnicas, List<MovementTableResponse> movementListResponseBefore);
+    MovementTotalsResponse calculationsMovements(List<MovementListResponse> movementListResponse, List<Long> cuentasUnicas, List<ArhClasification> cuentasArhUnicas);
+    // MovementTotalsResponse calculationsBeforeMovements(List<MovementListResponse> movementListResponse, List<Long> cuentasUnicas, List<MovementTableResponse> movementListResponseBefore);
+    MovementArhResponse calculationsArhMovements(List<MovementListResponse> movementListResponse, List<Long> cuentasUnicas, ArhClasification cuentaArhUnica);
     List<CapexResponse> getMovementByCapex(Long year);
     List<CapexResponse> getMovementByOpex(Long year);
     BigDecimal stringToLong(String raw);

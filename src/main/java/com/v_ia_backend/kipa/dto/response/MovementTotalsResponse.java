@@ -13,13 +13,13 @@ public class MovementTotalsResponse {
     private BigDecimal totalDebit;
     private BigDecimal totalCredit;
     private BigDecimal totalBalance;
-    private List<MovementTableResponse> movementTableResponse;
+    private List<MovementArhResponse> movementArhResponse;
 
-    public MovementTotalsResponse(BigDecimal totalDebit, BigDecimal totalCredit, BigDecimal totalBalance, List<MovementTableResponse> movementTableResponse) {
+    public MovementTotalsResponse(BigDecimal totalDebit, BigDecimal totalCredit, BigDecimal totalBalance, List<MovementArhResponse> movementArhResponse) {
         this.totalDebit = totalDebit;
         this.totalCredit = totalCredit;
         this.totalBalance = totalBalance;
-        this.movementTableResponse = movementTableResponse;
+        this.movementArhResponse = movementArhResponse;
     }
     public MovementTotalsResponse() {
 
